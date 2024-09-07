@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">InmobiXpress Manager</string>
+    <string name="tab_home">Mensajes</string>
+    <string name="tab_notification">Agenda</string>
+
+    <string name="search_message">Buscar mensajes</string>
+</resources>

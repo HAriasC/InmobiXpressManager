@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "473077113976",
+    "project_id": "inmobixpress-a0b7f",
+    "storage_bucket": "inmobixpress-a0b7f.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:473077113976:android:74d3bdd7579725d452b98d",
+        "android_client_info": {
+          "package_name": "com.inmobixpress.inmobixpressmanager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA4OBEaaEIS2KSiSUXkPDKkGThTdaCHwpI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
