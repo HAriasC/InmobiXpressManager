@@ -29,10 +29,13 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -49,8 +52,11 @@ import com.inmobixpress.inmobixpressmanager.ui.model.Email
 import com.inmobixpress.inmobixpressmanager.ui.utils.allEmails
 
 @Composable
-fun InboxScreen() {
+fun InboxScreen(
+    drawerState: DrawerState
+) {
     ReplyEmailList(
+        drawerState = drawerState,
         emails = allEmails,
         openedEmail = allEmails.first(),
         selectedEmailIds = emptySet(),
@@ -65,6 +71,7 @@ fun InboxScreen() {
 
 @Composable
 fun ReplyEmailList(
+    drawerState: DrawerState,
     emails: List<Email>,
     openedEmail: Email?,
     selectedEmailIds: Set<Long>,
@@ -75,6 +82,7 @@ fun ReplyEmailList(
 ) {
     Box(modifier = modifier.windowInsetsPadding(WindowInsets.statusBars)) {
         ReplyDockedSearchBar(
+            drawerState = drawerState,
             emails = emails,
             onSearchItemSelected = { searchedEmail ->
                 navigateToDetail(searchedEmail.id)
@@ -241,5 +249,5 @@ fun ReplyProfileImage(
 @Preview
 @Composable
 fun InboxScreenPreview() {
-    InboxScreen()
+    InboxScreen(drawerState = rememberDrawerState(initialValue = DrawerValue.Closed))
 }

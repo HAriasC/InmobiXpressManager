@@ -21,14 +21,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +44,8 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Black
+import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.ParentDataModifier
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -52,6 +62,7 @@ import androidx.compose.ui.unit.dp
 import com.inmobixpress.inmobixpressmanager.ui.model.Event
 import com.inmobixpress.inmobixpressmanager.ui.model.PositionedEvent
 import com.inmobixpress.inmobixpressmanager.ui.model.SplitType
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -60,9 +71,61 @@ import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
 
 @Composable
-fun ScheduleScreen() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        Schedule(sampleEvents)
+fun ScheduleScreen(
+    drawerState: DrawerState
+) {
+    val uiColor = if (isSystemInDarkTheme()) White else Black
+    val scope = rememberCoroutineScope()
+
+    Box(modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainer)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp, start = 8.dp, end = 12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                drawerState.apply {
+                                    if (isClosed) open() else close()
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Menu"
+                        )
+                    }
+                    Text(
+                        text = "Agenda",
+                        modifier = Modifier.padding(start = 8.dp),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = uiColor
+                    )
+                }
+                Text(
+                    text = "Citas agendadas para esta semana",
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = uiColor,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        Box(modifier = Modifier.padding(top = 100.dp)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Schedule(sampleEvents)
+            }
+        }
     }
 }
 
@@ -526,9 +589,11 @@ fun Schedule(
             }
         }
         Column(modifier = modifier) {
-            Box(modifier = modifier
-                .background(MaterialTheme.colorScheme.surfaceDim)
-                .border(border = CardDefaults.outlinedCardBorder())) {
+            Box(
+                modifier = modifier
+                    .background(MaterialTheme.colorScheme.surfaceDim)
+                    .border(border = CardDefaults.outlinedCardBorder())
+            ) {
                 ScheduleHeader(
                     minDate = minDate,
                     maxDate = maxDate,
@@ -673,5 +738,5 @@ fun BasicSchedule(
 @Preview(showBackground = true)
 @Composable
 fun SchedulePreview() {
-    Schedule(sampleEvents)
+    ScheduleScreen(drawerState = rememberDrawerState(initialValue = DrawerValue.Closed))
 }

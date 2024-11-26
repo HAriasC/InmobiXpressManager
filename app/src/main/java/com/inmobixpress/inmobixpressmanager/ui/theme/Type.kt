@@ -32,3 +32,19 @@ val Typography = Typography(
     )
     */
 )
+
+val itemTextStyle = TextStyle(
+    fontFamily = FontFamily.SansSerif,
+    fontWeight = FontWeight.Bold,
+    fontSize = 24.sp,
+    lineHeight = 28.sp,
+    letterSpacing = 0.sp
+)
+
+val moneyAmountStyle = TextStyle(
+    fontFamily = FontFamily.SansSerif,
+    fontWeight = FontWeight.Black,
+    fontSize = 56.sp,
+    lineHeight = 28.sp,
+    letterSpacing = 0.sp
+)

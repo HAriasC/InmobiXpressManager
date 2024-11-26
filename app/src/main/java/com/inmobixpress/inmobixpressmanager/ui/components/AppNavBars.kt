@@ -16,11 +16,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ModalDrawerSheet
@@ -42,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.inmobixpress.inmobixpressmanager.R
@@ -51,20 +54,23 @@ import com.inmobixpress.inmobixpressmanager.ui.model.NavigationItem
 import com.inmobixpress.inmobixpressmanager.ui.navigation.MainNavigation
 import com.inmobixpress.inmobixpressmanager.ui.screens.ReplyProfileImage
 import com.inmobixpress.inmobixpressmanager.ui.utils.formatNavRoute
+import com.inmobixpress.inmobixpressmanager.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
 fun DrawerNavigation(
+    viewModel: MainViewModel,
     drawerState: DrawerState,
     navController: NavHostController,
-    coroutineScope: CoroutineScope = rememberCoroutineScope()
+    coroutineScope: CoroutineScope = rememberCoroutineScope(),
+    onLogOut: () -> Unit,
 ) {
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                DrawerContent(navController = navController) { route ->
+                DrawerContent(navController = navController, onLogOut = onLogOut) { route ->
                     coroutineScope.launch {
                         drawerState.close()
                     }
@@ -84,7 +90,12 @@ fun DrawerNavigation(
                     .padding(innerPadding)
                     .fillMaxSize()
             ) {
-                MainNavigation(navController = navController)
+                MainNavigation(
+                    viewModel = viewModel,
+                    navController = navController,
+                    drawerState = drawerState,
+                    onLogOut = onLogOut
+                )
             }
         }
     }
@@ -93,7 +104,8 @@ fun DrawerNavigation(
 @Composable
 private fun DrawerContent(
     navController: NavHostController,
-    onMenuClick: (Any) -> Unit
+    onLogOut: () -> Unit,
+    onMenuClick: (Any) -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize()
@@ -101,6 +113,9 @@ private fun DrawerContent(
         DrawerMenu.entries.forEach { item ->
             val selected = navController.currentBackStackEntryAsState()
                 .value?.destination?.route?.formatNavRoute() == item.route
+            if (item.divider) {
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 10.dp))
+            }
             NavigationDrawerItem(
                 label = { Text(text = stringResource(id = item.title)) },
                 icon = {
@@ -116,7 +131,11 @@ private fun DrawerContent(
                 },
                 selected = selected,
                 onClick = {
-                    onMenuClick(item.destination)
+                    if (DrawerMenu.LOGOUT.route == item.route) {
+                        onLogOut.invoke()
+                    } else {
+                        onMenuClick(item.destination)
+                    }
                 }
             )
         }
@@ -125,7 +144,7 @@ private fun DrawerContent(
 
 @Composable
 fun BottomBar(
-    navController: NavHostController
+    navController: NavHostController,
 ) {
     AnimatedVisibility(
         visible = true,
@@ -140,7 +159,19 @@ fun BottomBar(
                     selected = selected,
                     onClick = {
                         if (selected.not()) {
-                            navController.navigate(item.destination)
+                            navController.navigate(item.destination) {
+                                // Pop up to the start destination of the graph to
+                                // avoid building up a large stack of destinations
+                                // on the back stack as users select items
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                // Avoid multiple copies of the same destination when
+                                // reselecting the same item
+                                launchSingleTop = true
+                                // Restore state when reselecting a previously selected item
+                                restoreState = true
+                            }
                         }
                     },
                     icon = {
@@ -161,13 +192,15 @@ fun BottomBar(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReplyDockedSearchBar(
+    drawerState: DrawerState,
     emails: List<Email>,
     onSearchItemSelected: (Email) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var query by remember { mutableStateOf("") }
     var active by remember { mutableStateOf(false) }
     val searchResults = remember { mutableStateListOf<Email>() }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(query) {
         searchResults.clear()
@@ -200,33 +233,35 @@ fun ReplyDockedSearchBar(
         },
         placeholder = { Text(text = stringResource(id = R.string.search_message)) },
         leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.Menu,
+                contentDescription = "",
+                modifier = Modifier.clickable {
+                    scope.launch {
+                        drawerState.apply {
+                            if (isClosed) open() else close()
+                        }
+                    }
+                }
+            )
+        },
+        trailingIcon = {
             if (active) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Atras",
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Limpiar",
                     modifier = Modifier
-                        .padding(start = 16.dp)
                         .clickable {
                             active = false
                             query = ""
-                        },
+                        }
                 )
             } else {
                 Icon(
                     imageVector = Icons.Default.Search,
-                    contentDescription = "",
-                    modifier = Modifier.padding(start = 16.dp),
+                    contentDescription = ""
                 )
             }
-        },
-        trailingIcon = {
-            ReplyProfileImage(
-                drawableResource = R.drawable.ic_launcher_foreground,
-                description = "",
-                modifier = Modifier
-                    .padding(12.dp)
-                    .size(32.dp)
-            )
         },
     ) {
         if (searchResults.isNotEmpty()) {
