@@ -10,6 +10,7 @@ fun DetailScreen(
     onNavigateBack: () -> Unit
 ) {
     if (index == 0) {
+        viewModel.loadProperties()
         PropertyRegistrationScreen(viewModel = viewModel)
     }
 }

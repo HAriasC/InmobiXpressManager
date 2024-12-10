@@ -1,4 +1,4 @@
-package com.inmobixpress.inmobixpressmanager.data.repository
+package com.inmobixpress.inmobixpressmanager.repository
 
 import android.util.Log
 import com.inmobixpress.inmobixpressmanager.data.network.model.NetworkResult

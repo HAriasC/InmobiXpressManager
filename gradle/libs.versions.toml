@@ -1,8 +1,8 @@
 [versions]
-agp = "8.6.1"
-kotlin = "2.0.21"
+agp = "8.7.3"
+kotlin = "2.1.0"
 coreKtx = "1.15.0"
-ksp = "2.0.21-1.0.25"
+ksp = "2.1.0-1.0.29"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
@@ -14,6 +14,7 @@ navigationCompose = "2.8.4"
 serialization = "1.7.3"
 googleGmsGoogleServices = "4.4.2"
 firebaseMessaging = "24.1.0"
+storage = "21.0.1"
 cloudy = "0.2.3"
 lottie = "6.5.2"
 hilt = "2.51.1"
@@ -44,6 +45,7 @@ androidx-material-icons = { group = "androidx.compose.material", name = "materia
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashScreen" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging", version.ref = "firebaseMessaging" }
+firebase-storage = { group = "com.google.firebase", name = "firebase-storage", version.ref = "storage"}
 compose-cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
 compose-number-picker = { group = "com.chillibits", name = "composenumberpicker", version.ref = "chillibits" }
 lottie-compose = { group = "com.airbnb.android", name = "lottie-compose", version.ref = "lottie" }

@@ -6,7 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.inmobixpress.inmobixpressmanager.data.network.model.User
-import com.inmobixpress.inmobixpressmanager.data.repository.LoginRepository
+import com.inmobixpress.inmobixpressmanager.repository.LoginRepository
 import com.inmobixpress.inmobixpressmanager.ui.model.UIState
 import com.inmobixpress.inmobixpressmanager.ui.model.UIState.*
 import dagger.hilt.android.lifecycle.HiltViewModel

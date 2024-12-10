@@ -7,7 +7,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.inmobixpress.inmobixpressmanager.data.network.implement.LoginServiceImpl
-import com.inmobixpress.inmobixpressmanager.data.repository.LoginRepository
+import com.inmobixpress.inmobixpressmanager.data.network.implement.PropertyServiceImpl
+import com.inmobixpress.inmobixpressmanager.repository.LoginRepository
+import com.inmobixpress.inmobixpressmanager.repository.PropertyRepository
 import com.inmobixpress.inmobixpressmanager.ui.screens.MainScreen
 import com.inmobixpress.inmobixpressmanager.ui.viewmodel.LoginViewModel
 import com.inmobixpress.inmobixpressmanager.ui.viewmodel.MainViewModel
@@ -17,11 +19,15 @@ import io.ktor.client.HttpClient
 fun GlobalNavigation(
     navController: NavHostController = rememberNavController(),
     loginViewModel: LoginViewModel,
-    mainViewModel: MainViewModel
+    mainViewModel: MainViewModel,
 ) {
     NavHost(navController = navController, startDestination = NavScreen.Auth) {
-        authNavigation(navController = navController, viewModel = loginViewModel)
-        composable<NavScreen.Main>{
+        authNavigation(
+            navController = navController,
+            viewModel = loginViewModel,
+            mainViewModel = mainViewModel
+        )
+        composable<NavScreen.Main> {
             MainScreen(
                 viewModel = mainViewModel,
                 onLogOut = {
@@ -39,6 +45,12 @@ fun GlobalNavigation(
 fun GlobalNavigationPreview() {
     GlobalNavigation(
         loginViewModel = LoginViewModel(LoginRepository(LoginServiceImpl(HttpClient()))),
-        mainViewModel = MainViewModel()
+        mainViewModel = MainViewModel(
+            PropertyRepository(
+                PropertyServiceImpl(
+                    HttpClient()
+                )
+            )
+        )
     )
 }

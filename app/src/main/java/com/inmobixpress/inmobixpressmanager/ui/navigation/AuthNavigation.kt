@@ -8,10 +8,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navigation
 import com.inmobixpress.inmobixpressmanager.ui.screens.LoginScreen
 import com.inmobixpress.inmobixpressmanager.ui.viewmodel.LoginViewModel
+import com.inmobixpress.inmobixpressmanager.ui.viewmodel.MainViewModel
 
 fun NavGraphBuilder.authNavigation(
     navController: NavHostController,
     viewModel: LoginViewModel,
+    mainViewModel: MainViewModel
 ) {
     navigation<NavScreen.Auth>(startDestination = NavScreen.Login) {
         composable<NavScreen.Login>(
@@ -28,7 +30,8 @@ fun NavGraphBuilder.authNavigation(
         ) {
             LoginScreen(
                 viewModel = viewModel,
-                onNavigateToMain = {
+                onNavigateToMain = { user ->
+                    mainViewModel.onUserChanged(user = user)
                     navController.navigate(NavScreen.Main)
                 }
             )

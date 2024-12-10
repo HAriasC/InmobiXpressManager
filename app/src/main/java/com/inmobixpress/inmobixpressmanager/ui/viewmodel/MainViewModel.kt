@@ -1,14 +1,56 @@
 package com.inmobixpress.inmobixpressmanager.ui.viewmodel
 
-import androidx.core.text.isDigitsOnly
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.inmobixpress.inmobixpressmanager.data.network.model.Country
+import com.inmobixpress.inmobixpressmanager.data.network.model.Department
+import com.inmobixpress.inmobixpressmanager.data.network.model.District
+import com.inmobixpress.inmobixpressmanager.data.network.model.Location
+import com.inmobixpress.inmobixpressmanager.data.network.model.OfferType
+import com.inmobixpress.inmobixpressmanager.data.network.model.Property
+import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyHasOfferType
+import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyState
+import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyType
+import com.inmobixpress.inmobixpressmanager.data.network.model.Province
+import com.inmobixpress.inmobixpressmanager.data.network.model.User
+import com.inmobixpress.inmobixpressmanager.repository.PropertyRepository
+import com.inmobixpress.inmobixpressmanager.ui.model.UIState
+import com.inmobixpress.inmobixpressmanager.ui.model.UIState.Error
+import com.inmobixpress.inmobixpressmanager.ui.model.UIState.Loading
+import com.inmobixpress.inmobixpressmanager.ui.model.UIState.None
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class MainViewModel @Inject constructor() : ViewModel() {
+class MainViewModel @Inject constructor(
+    private val repository: PropertyRepository,
+    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+) : ViewModel() {
+
+    private val _loadingVisible = MutableLiveData<Boolean>()
+    val loadingVisible: LiveData<Boolean> = _loadingVisible
+
+    private val _errorDialogVisible = MutableLiveData<Boolean>()
+    val errorDialogVisible: LiveData<Boolean> = _errorDialogVisible
+
+    private val _completeDialogVisible = MutableLiveData<Boolean>()
+    val completeDialogVisible: LiveData<Boolean> = _completeDialogVisible
+
+    private val _propertyItem = MutableLiveData<String>()
+    val propertyItem: LiveData<String> = _propertyItem
 
     private val _title = MutableLiveData<String>()
     val title: LiveData<String> = _title
@@ -49,20 +91,47 @@ class MainViewModel @Inject constructor() : ViewModel() {
     private val _postal = MutableLiveData<String>()
     val postal: LiveData<String> = _postal
 
+    private val _nBedroom = MutableLiveData("1")
+    val nBedroom: LiveData<String> = _nBedroom
+
+    private val _nBathroom = MutableLiveData("1")
+    val nBathroom: LiveData<String> = _nBathroom
+
+    private val _nGarage = MutableLiveData("0")
+    val nGarage: LiveData<String> = _nGarage
+
+    private val _nFloor = MutableLiveData("1")
+    val nFloor: LiveData<String> = _nFloor
+
+    private val _totalArea = MutableLiveData("80")
+    val totalArea: LiveData<String> = _totalArea
+
+    private val _builtArea = MutableLiveData("80")
+    val builtArea: LiveData<String> = _builtArea
+
     private val _postalError = MutableLiveData<Boolean>()
     val postalError: LiveData<Boolean> = _postalError
 
     private val _postalMessageError = MutableLiveData<String>()
     val postalMessageError: LiveData<String> = _postalMessageError
 
-    private val _antique = MutableLiveData<String>()
+    private val _antique = MutableLiveData("2024")
     val antique: LiveData<String> = _antique
 
-    private val _offerType = MutableLiveData<String>()
+    private val _offerType = MutableLiveData("Alquiler")
     val offerType: LiveData<String> = _offerType
 
-    private val _offerTypes = MutableLiveData<List<String>>()
-    val offerTypes: LiveData<List<String>> = _offerTypes
+    private val _offerTypeItem = MutableLiveData<OfferType>()
+    val offerTypeItem: LiveData<OfferType> = _offerTypeItem
+
+    private val _offerTypeSale = MutableLiveData("Venta")
+    val offerTypeSale: LiveData<String> = _offerTypeSale
+
+    private val _offerTypeSaleItem = MutableLiveData<OfferType>()
+    val offerTypeSaleItem: LiveData<OfferType> = _offerTypeSaleItem
+
+    private val _offerTypes = MutableStateFlow<UIState<List<OfferType>>>(Loading())
+    val offerTypes = _offerTypes.asStateFlow()
 
     private val _price = MutableLiveData<String>()
     val price: LiveData<String> = _price
@@ -73,11 +142,32 @@ class MainViewModel @Inject constructor() : ViewModel() {
     private val _priceMessageError = MutableLiveData<String>()
     val priceMessageError: LiveData<String> = _priceMessageError
 
+    private val _priceSale = MutableLiveData<String>()
+    val priceSale: LiveData<String> = _priceSale
+
+    private val _priceSaleError = MutableLiveData<Boolean>()
+    val priceSaleError: LiveData<Boolean> = _priceSaleError
+
+    private val _priceSaleMessageError = MutableLiveData<String>()
+    val priceSaleMessageError: LiveData<String> = _priceSaleMessageError
+
+    private val _propertyType = MutableLiveData<String>()
+    val propertyType: LiveData<String> = _propertyType
+
+    private val _propertyTypes = MutableStateFlow<UIState<List<PropertyType>>>(Loading())
+    val propertyTypes = _propertyTypes.asStateFlow()
+
+    private val _propertyTypeList = MutableLiveData<List<PropertyType>>()
+    val propertyTypeList: LiveData<List<PropertyType>> = _propertyTypeList
+
     private val _propertyState = MutableLiveData<String>()
     val propertyState: LiveData<String> = _propertyState
 
-    private val _propertyStates = MutableLiveData<List<String>>()
-    val propertyStates: LiveData<List<String>> = _propertyStates
+    private val _propertyStates = MutableStateFlow<UIState<List<PropertyState>>>(Loading())
+    val propertyStates = _propertyStates.asStateFlow()
+
+    private val _propertyStateList = MutableLiveData<List<PropertyState>>()
+    val propertyStateList: LiveData<List<PropertyState>> = _propertyStateList
 
     private val _latitude = MutableLiveData<String>()
     val latitude: LiveData<String> = _latitude
@@ -115,29 +205,53 @@ class MainViewModel @Inject constructor() : ViewModel() {
     private val _altitudeBaseMessageError = MutableLiveData<String>()
     val altitudeBaseMessageError: LiveData<String> = _altitudeBaseMessageError
 
-    private val _districts = MutableLiveData<List<String>>()
-    val districts: LiveData<List<String>> = _districts
+    private val _districts = MutableStateFlow<UIState<List<District>>>(Loading())
+    val districts = _districts.asStateFlow()
 
     private val _district = MutableLiveData<String>()
     val district: LiveData<String> = _district
 
-    private val _provinces = MutableLiveData<List<String>>()
-    val provinces: LiveData<List<String>> = _provinces
+    private val _districtList = MutableLiveData<List<District>>()
+    val districtList: LiveData<List<District>> = _districtList
+
+    private val _provinces = MutableStateFlow<UIState<List<Province>>>(Loading())
+    val provinces = _provinces.asStateFlow()
 
     private val _province = MutableLiveData<String>()
     val province: LiveData<String> = _province
 
-    private val _departments = MutableLiveData<List<String>>()
-    val departments: LiveData<List<String>> = _departments
+    private val _departments = MutableStateFlow<UIState<List<Department>>>(Loading())
+    val departments = _departments.asStateFlow()
 
     private val _department = MutableLiveData<String>()
     val department: LiveData<String> = _department
 
-    private val _countries = MutableLiveData<List<String>>()
-    val countries: LiveData<List<String>> = _countries
+    private val _countries = MutableStateFlow<UIState<List<Country>>>(Loading())
+    val countries = _countries.asStateFlow()
 
     private val _country = MutableLiveData<String>()
     val country: LiveData<String> = _country
+
+    private val _properties = MutableStateFlow<UIState<List<Property>>>(Loading())
+    val properties = _properties.asStateFlow()
+
+    private val _property = MutableStateFlow<UIState<Property>>(None())
+    val property = _property.asStateFlow()
+
+    private val _insert = MutableStateFlow<UIState<String>>(None())
+    val insert = _insert.asStateFlow()
+
+    private val _insertComplex = MutableStateFlow<UIState<String>>(None())
+    val insertComplex = _insertComplex.asStateFlow()
+
+    private val _update = MutableStateFlow<UIState<String>>(None())
+    val update = _update.asStateFlow()
+
+    private val _delete = MutableStateFlow<UIState<String>>(None())
+    val delete = _delete.asStateFlow()
+
+    private val _user = MutableLiveData<User>()
+    val user: LiveData<User> = _user
 
     fun years() = arrayOf(
         "1950",
@@ -217,6 +331,22 @@ class MainViewModel @Inject constructor() : ViewModel() {
         "2024"
     )
 
+    fun onLoadingVisible(visible: Boolean) {
+        _loadingVisible.value = visible
+    }
+
+    fun onErrorDialogVisible(visible: Boolean) {
+        _errorDialogVisible.value = visible
+    }
+
+    fun onCompleteDialogVisible(visible: Boolean) {
+        _completeDialogVisible.value = visible
+    }
+
+    fun onPropertyItemChanged(property: String) {
+        _propertyItem.value = property
+    }
+
     fun onTitleChanged(title: String) {
         _title.value = title
     }
@@ -237,6 +367,30 @@ class MainViewModel @Inject constructor() : ViewModel() {
         _postal.value = postal
     }
 
+    fun onNBedroomChanged(nBedroom: String) {
+        _nBedroom.value = nBedroom
+    }
+
+    fun onNBathroomChanged(nBathroom: String) {
+        _nBathroom.value = nBathroom
+    }
+
+    fun onNGarageChanged(nGarage: String) {
+        _nGarage.value = nGarage
+    }
+
+    fun onNFloorChanged(nFloor: String) {
+        _nFloor.value = nFloor
+    }
+
+    fun onTotalAreaChanged(totalArea: String) {
+        _postal.value = totalArea
+    }
+
+    fun onBuiltAreaChanged(builtArea: String) {
+        _builtArea.value = builtArea
+    }
+
     fun onAntiqueChanged(year: String) {
         _antique.value = year
     }
@@ -245,12 +399,40 @@ class MainViewModel @Inject constructor() : ViewModel() {
         _offerType.value = offerType
     }
 
+    fun onOfferTypeItemChanged(offerType: OfferType) {
+        _offerTypeItem.value = offerType
+    }
+
+    fun onOfferTypeSaleChanged(offerType: String) {
+        _offerTypeSale.value = offerType
+    }
+
+    fun onOfferTypeSaleItemChanged(offerType: OfferType) {
+        _offerTypeSaleItem.value = offerType
+    }
+
     fun onPriceChanged(price: String) {
         _price.value = price
     }
 
+    fun onPriceSaleChanged(price: String) {
+        _priceSale.value = price
+    }
+
+    fun onPropertyTypeChanged(propertyType: String) {
+        _propertyType.value = propertyType
+    }
+
+    fun onPropertyTypeListChanged(propertyTypeList: List<PropertyType>) {
+        _propertyTypeList.value = propertyTypeList
+    }
+
     fun onPropertyStateChanged(propertyState: String) {
         _propertyState.value = propertyState
+    }
+
+    fun onPropertyStateListChanged(propertyStateList: List<PropertyState>) {
+        _propertyStateList.value = propertyStateList
     }
 
     fun onLatitudeChanged(latitude: String) {
@@ -272,6 +454,11 @@ class MainViewModel @Inject constructor() : ViewModel() {
     fun onDistrictChanged(district: String) {
         _district.value = district
     }
+
+    fun onDistrictListChanged(districtList: List<District>) {
+        _districtList.value = districtList
+    }
+
     fun onProvinceChanged(province: String) {
         _province.value = province
     }
@@ -282,6 +469,10 @@ class MainViewModel @Inject constructor() : ViewModel() {
 
     fun onCountryChanged(country: String) {
         _country.value = country
+    }
+
+    fun onUserChanged(user: User) {
+        _user.value = user
     }
 
     fun validateTitle(): Boolean {
@@ -348,6 +539,30 @@ class MainViewModel @Inject constructor() : ViewModel() {
         return _priceError.value == false
     }
 
+    fun validatePriceSale(): Boolean {
+        if (_priceSale.value.isNullOrBlank() || _priceSale.value.toString()
+                .matches("\\d+(\\.\\d+)?".toRegex()).not()
+        ) {
+            _priceSaleMessageError.value = "Ingresa un precio valido"
+            _priceSaleError.value = true
+        } else {
+            _priceSaleError.value = false
+        }
+        return _priceSaleError.value == false
+    }
+
+    fun validateAllPrice(): Boolean {
+        if (validatePrice() && validatePriceSale()) {
+            return true
+        } else if (validatePrice()) {
+            return true
+        } else if (validatePriceSale()) {
+            return true
+        } else {
+            return false
+        }
+    }
+
     fun validateLatitude(): Boolean {
         if (_latitude.value.isNullOrBlank() || _latitude.value.toString()
                 .matches("-?\\d+(\\.\\d+)?".toRegex()).not()
@@ -395,4 +610,310 @@ class MainViewModel @Inject constructor() : ViewModel() {
         }
         return _altitudeBaseError.value == false
     }
+
+    fun validateForm(): Boolean {
+        if (validateTitle() && validateDescription() && validateMaintenance() && validateAddress()
+            && validatePostal() && validateAllPrice() && validateLatitude() && validateLongitude()
+            && validateAltitude() && validateAltitudeBase() && offerType.value != "---"
+            && propertyType.value != "---" && propertyState.value != "---" && country.value != "---"
+            && department.value != "---" && province.value != "---" && district.value != "---"
+        ) {
+            return true
+        } else {
+            return false
+        }
+    }
+
+    fun executeRegister() {
+        if (validateForm()) {
+            viewModelScope.launch {
+                Log.e(
+                    "List",
+                    "${_propertyTypeList.value.toString()} ${_propertyStateList.value.toString()} ${_districtList.value.toString()}"
+                )
+                Log.e("Match", "${_propertyType.value} ${_propertyState.value} ${_district.value}")
+                registerProperty(
+                    property = getProperty()
+                )
+            }
+        }
+    }
+
+    fun executeRegisterComplex(id: Int) {
+        val list = mutableListOf<Pair<OfferType, Double>>()
+        if (validatePrice()) {
+            Log.e("ID", _offerTypeItem.value?.id.toString())
+            list.add(
+                element = Pair(
+                    first = OfferType(
+                        id = _offerTypeItem.value?.id ?: 0,
+                        name = _offerTypeItem.value?.name.toString()
+                    ),
+                    second = _price.value.toString().toDouble()
+                )
+            )
+        }
+        if (validatePriceSale()) {
+            Log.e("ID", _offerTypeSaleItem.value?.id.toString())
+            list.add(
+                element = Pair(
+                    first = OfferType(
+                        id = _offerTypeSaleItem.value?.id ?: 0,
+                        name = _offerTypeSaleItem.value?.name.toString()
+                    ),
+                    second = _priceSale.value.toString().toDouble()
+                )
+            )
+        }
+        list.forEach { item ->
+            registerPropertyHasOfferType(
+                propertyHasOfferType = PropertyHasOfferType(
+                    property = getProperty(id = id),
+                    offerType = item.first,
+                    price = item.second
+                )
+            )
+        }
+    }
+
+    fun loadProperties() {
+        viewModelScope.launch {
+            repository.loadProperties()
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _properties.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _properties.value = it }
+        }
+    }
+
+    fun loadProperty(id: Int) {
+        viewModelScope.launch {
+            repository.loadProperty(id = id)
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _property.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _property.value = it }
+        }
+    }
+
+    fun registerProperty(property: Property) {
+        viewModelScope.launch {
+            repository.registerProperty(property = property)
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _insert.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _insert.value = it }
+        }
+    }
+
+    fun updateProperty(id: Int, property: Property) {
+        viewModelScope.launch {
+            repository.updateProperty(id = id, property = property)
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _update.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _update.value = it }
+        }
+    }
+
+    fun deleteProperty(id: Int) {
+        viewModelScope.launch {
+            repository.deleteProperty(id = id)
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _delete.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _delete.value = it }
+        }
+    }
+
+    fun registerPropertyHasOfferType(propertyHasOfferType: PropertyHasOfferType) {
+        viewModelScope.launch {
+            repository.registerPropertyXOfferType(propertyHasOfferType = propertyHasOfferType)
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _insertComplex.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _insertComplex.value = it }
+        }
+    }
+
+    fun loadOfferTypes() {
+        viewModelScope.launch {
+            repository.loadOfferTypes()
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _offerTypes.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _offerTypes.value = it }
+        }
+    }
+
+    fun loadPropertyTypes() {
+        viewModelScope.launch {
+            repository.loadPropertyTypes()
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _propertyTypes.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _propertyTypes.value = it }
+        }
+    }
+
+    fun loadPropertyStates() {
+        viewModelScope.launch {
+            repository.loadPropertyStates()
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _propertyStates.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _propertyStates.value = it }
+        }
+    }
+
+    fun loadCountries() {
+        viewModelScope.launch {
+            repository.loadCountries()
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _countries.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _countries.value = it }
+        }
+    }
+
+    fun loadDepartments() {
+        viewModelScope.launch {
+            repository.loadDepartments()
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _departments.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _departments.value = it }
+        }
+    }
+
+    fun loadProvinces() {
+        viewModelScope.launch {
+            repository.loadProvinces()
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _provinces.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _provinces.value = it }
+        }
+    }
+
+    fun loadDistricts() {
+        viewModelScope.launch {
+            repository.loadDistricts()
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _districts.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _districts.value = it }
+        }
+    }
+
+    private fun getProperty(id: Int = 0) = Property(
+        id = id,
+        title = _title.value.toString(),
+        description = _description.value.toString(),
+        maintenance = _maintenance.value.toString().toDouble(),
+        address = _address.value.toString(),
+        postalCode = _postal.value.toString(),
+        nBedroom = _nBedroom.value.toString().toInt(),
+        nBathroom = _nBathroom.value.toString().toDouble(),
+        nGarage = _nGarage.value.toString().toInt(),
+        buildingYear = _antique.value.toString().toInt(),
+        floor = _nFloor.value.toString().toInt(),
+        totalArea = _totalArea.value.toString().toDouble(),
+        builtArea = _builtArea.value.toString().toDouble(),
+        propertyType = _propertyTypeList.value!!.first {
+            it.name == _propertyType.value.toString()
+        },
+        propertyState = _propertyStateList.value!!.first {
+            it.name == _propertyState.value.toString()
+        },
+        location = Location(
+            id = 30,
+            latitude = _latitude.value.toString().toDouble(),
+            longitude = _longitude.value.toString().toDouble(),
+            altitude = _altitude.value.toString().toDouble(),
+            altitudeBase = _altitudeBase.value.toString().toDouble()
+        ),
+        district = _districtList.value!!.first {
+            it.name == _district.value.toString()
+        },
+        user = _user.value!!
+    )
 }

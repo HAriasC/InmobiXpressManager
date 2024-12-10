@@ -2,14 +2,15 @@ package com.inmobixpress.inmobixpressmanager.data.network.di
 
 import android.util.Log
 import com.inmobixpress.inmobixpressmanager.data.network.implement.LoginServiceImpl
+import com.inmobixpress.inmobixpressmanager.data.network.implement.PropertyServiceImpl
 import com.inmobixpress.inmobixpressmanager.data.network.service.LoginService
+import com.inmobixpress.inmobixpressmanager.data.network.service.PropertyService
 import com.inmobixpress.inmobixpressmanager.data.network.utils.TIME_OUT
 import com.inmobixpress.inmobixpressmanager.data.network.utils.Util
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.ktor.client.*
-import io.ktor.client.engine.android.Android
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -71,10 +72,15 @@ object NetworkModule {
         }
     }
 
+    @Provides
+    fun provideDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
     @Singleton
     @Provides
     fun provideLoginService(httpClient: HttpClient): LoginService = LoginServiceImpl(httpClient)
 
+    @Singleton
     @Provides
-    fun provideDispatcher(): CoroutineDispatcher = Dispatchers.IO
+    fun providePropertyService(httpClient: HttpClient): PropertyService =
+        PropertyServiceImpl(httpClient)
 }

@@ -73,7 +73,7 @@ import androidx.compose.ui.unit.sp
 import com.inmobixpress.inmobixpressmanager.R
 import com.inmobixpress.inmobixpressmanager.data.network.implement.LoginServiceImpl
 import com.inmobixpress.inmobixpressmanager.data.network.model.User
-import com.inmobixpress.inmobixpressmanager.data.repository.LoginRepository
+import com.inmobixpress.inmobixpressmanager.repository.LoginRepository
 import com.inmobixpress.inmobixpressmanager.ui.components.LoadingScreen
 import com.inmobixpress.inmobixpressmanager.ui.components.MessageDialog
 import com.inmobixpress.inmobixpressmanager.ui.model.UIState
@@ -84,7 +84,7 @@ import io.ktor.client.HttpClient
 @Composable
 fun LoginScreen(
     viewModel: LoginViewModel,
-    onNavigateToMain: () -> Unit,
+    onNavigateToMain: (User) -> Unit,
 ) {
     val showLoading by viewModel.loadingVisible.observeAsState(initial = false)
     val showErrorDialog by viewModel.errorDialogVisible.observeAsState(initial = false)
@@ -175,15 +175,13 @@ fun LoginScreen(
             is UIState.Loading -> viewModel.onLoadingVisible(visible = true)
 
             is UIState.Success -> {
-                Log.e("REPU", (result as UIState.Success<User>).data.toString())
-                onNavigateToMain()
+                onNavigateToMain((result as UIState.Success<User>).data)
                 viewModel.clearForm()
                 viewModel.reset()
                 viewModel.onLoadingVisible(visible = false)
             }
 
             is UIState.Error -> {
-                Log.e("REPU", (result as UIState.Error<User>).error.toString())
                 viewModel.onLoadingVisible(visible = false)
                 viewModel.onErrorDialogVisible(visible = true)
             }

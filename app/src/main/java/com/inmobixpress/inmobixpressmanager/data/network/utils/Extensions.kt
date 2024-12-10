@@ -5,16 +5,19 @@ import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpStatusCode
 
-const val TIME_OUT = 10_000L
+const val TIME_OUT = 30_000L
 
 object Util {
-    //const val BASE_URL = "http://10.0.2.2:8080"
-    const val BASE_URL = "https://inmobixpress.uc.r.appspot.com"
+    const val BASE_URL = "http://10.0.2.2:8080"
+    //const val BASE_URL = "https://inmobixpress.uc.r.appspot.com"
 }
 
 suspend inline fun <reified T : Any> HttpResponse.toResult(): NetworkResult<T> {
     return when (status) {
-        HttpStatusCode.OK -> NetworkResult.Success(body())
+        HttpStatusCode.OK, HttpStatusCode.Created, HttpStatusCode.Accepted -> NetworkResult.Success(
+            body()
+        )
+
         HttpStatusCode.BadRequest -> NetworkResult.Error(NetworkException(body()))
         HttpStatusCode.Unauthorized -> NetworkResult.Error(NetworkException(body()))
         HttpStatusCode.NotFound -> NetworkResult.Error(NetworkException(body()))
