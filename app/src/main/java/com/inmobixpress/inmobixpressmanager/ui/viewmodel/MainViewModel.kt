@@ -1,5 +1,6 @@
 package com.inmobixpress.inmobixpressmanager.ui.viewmodel
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -8,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.inmobixpress.inmobixpressmanager.data.network.model.Country
 import com.inmobixpress.inmobixpressmanager.data.network.model.Department
 import com.inmobixpress.inmobixpressmanager.data.network.model.District
+import com.inmobixpress.inmobixpressmanager.data.network.model.Image
 import com.inmobixpress.inmobixpressmanager.data.network.model.Location
 import com.inmobixpress.inmobixpressmanager.data.network.model.OfferType
 import com.inmobixpress.inmobixpressmanager.data.network.model.Property
@@ -32,7 +34,9 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
+import kotlin.uuid.Uuid
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -232,6 +236,21 @@ class MainViewModel @Inject constructor(
     private val _country = MutableLiveData<String>()
     val country: LiveData<String> = _country
 
+    private val _imageUris = MutableLiveData<List<Uri>>()
+    val imageUris: LiveData<List<Uri>> = _imageUris
+
+    private val _imageUrisError = MutableLiveData<Boolean>()
+    val imageUrisError: LiveData<Boolean> = _imageUrisError
+
+    private val _imageUrisMessageError = MutableLiveData<String>()
+    val imageUrisMessageError: LiveData<String> = _imageUrisMessageError
+
+    private val _imageUrls = MutableLiveData<List<String>>()
+    val imageUrls: LiveData<List<String>> = _imageUrls
+
+    private val _images = MutableStateFlow<UIState<List<Image>>>(Loading())
+    val images = _images.asStateFlow()
+
     private val _properties = MutableStateFlow<UIState<List<Property>>>(Loading())
     val properties = _properties.asStateFlow()
 
@@ -244,6 +263,12 @@ class MainViewModel @Inject constructor(
     private val _insertComplex = MutableStateFlow<UIState<String>>(None())
     val insertComplex = _insertComplex.asStateFlow()
 
+    private val _uploadImage = MutableStateFlow<UIState<Uri>>(None())
+    val uploadImage = _uploadImage.asStateFlow()
+
+    private val _insertImage = MutableStateFlow<UIState<String>>(None())
+    val insertImage = _insertImage.asStateFlow()
+
     private val _update = MutableStateFlow<UIState<String>>(None())
     val update = _update.asStateFlow()
 
@@ -252,6 +277,8 @@ class MainViewModel @Inject constructor(
 
     private val _user = MutableLiveData<User>()
     val user: LiveData<User> = _user
+
+    private var propertyId = MutableLiveData(0)
 
     fun years() = arrayOf(
         "1950",
@@ -471,6 +498,14 @@ class MainViewModel @Inject constructor(
         _country.value = country
     }
 
+    fun onImageUrisChanged(uris: List<Uri>) {
+        _imageUris.value = uris
+    }
+
+    fun onImageUrlsChanged(urls: List<String>) {
+        _imageUrls.value = urls
+    }
+
     fun onUserChanged(user: User) {
         _user.value = user
     }
@@ -611,12 +646,23 @@ class MainViewModel @Inject constructor(
         return _altitudeBaseError.value == false
     }
 
+    fun validateImages(): Boolean {
+        if (_imageUris.value.isNullOrEmpty()) {
+            _imageUrisMessageError.value = "Suba alguna imagen referencial del inmueble"
+            _imageUrisError.value = true
+        } else {
+            _imageUrisError.value = false
+        }
+        return _imageUrisError.value == false
+    }
+
     fun validateForm(): Boolean {
         if (validateTitle() && validateDescription() && validateMaintenance() && validateAddress()
             && validatePostal() && validateAllPrice() && validateLatitude() && validateLongitude()
             && validateAltitude() && validateAltitudeBase() && offerType.value != "---"
             && propertyType.value != "---" && propertyState.value != "---" && country.value != "---"
             && department.value != "---" && province.value != "---" && district.value != "---"
+            && validateImages()
         ) {
             return true
         } else {
@@ -640,6 +686,7 @@ class MainViewModel @Inject constructor(
     }
 
     fun executeRegisterComplex(id: Int) {
+        propertyId.postValue(id)
         val list = mutableListOf<Pair<OfferType, Double>>()
         if (validatePrice()) {
             Log.e("ID", _offerTypeItem.value?.id.toString())
@@ -674,6 +721,22 @@ class MainViewModel @Inject constructor(
                 )
             )
         }
+    }
+
+    fun executeUploadImages() {
+        _imageUris.value?.forEach {
+            uploadImage(imageURI = it)
+        }
+    }
+
+    fun executeRegisterMedia(uri: Uri) {
+        registerImage(
+            image = Image(
+                id = 0,
+                url = uri.toString(),
+                property = getProperty(id = propertyId.value ?: 0)
+            )
+        )
     }
 
     fun loadProperties() {
@@ -881,6 +944,54 @@ class MainViewModel @Inject constructor(
                     SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
                     Loading()
                 ).collect { _districts.value = it }
+        }
+    }
+
+    fun loadImages() {
+        viewModelScope.launch {
+            repository.loadImages()
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _images.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _images.value = it }
+        }
+    }
+
+    fun uploadImage(imageURI: Uri) {
+        viewModelScope.launch {
+            repository.uploadImages(name = UUID.randomUUID().toString(), imageURI = imageURI)
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _uploadImage.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _uploadImage.value = it }
+        }
+    }
+
+    fun registerImage(image: Image) {
+        viewModelScope.launch {
+            repository.registerImage(image = image)
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _insertImage.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _insertImage.value = it }
         }
     }
 

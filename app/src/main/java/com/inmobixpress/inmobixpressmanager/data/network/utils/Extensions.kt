@@ -8,8 +8,8 @@ import io.ktor.http.HttpStatusCode
 const val TIME_OUT = 30_000L
 
 object Util {
-    const val BASE_URL = "http://10.0.2.2:8080"
-    //const val BASE_URL = "https://inmobixpress.uc.r.appspot.com"
+    //const val BASE_URL = "http://10.0.2.2:8080"
+    const val BASE_URL = "https://inmobixpress.uc.r.appspot.com"
 }
 
 suspend inline fun <reified T : Any> HttpResponse.toResult(): NetworkResult<T> {

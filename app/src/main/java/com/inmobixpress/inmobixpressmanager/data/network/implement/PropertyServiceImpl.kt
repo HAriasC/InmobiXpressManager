@@ -1,8 +1,11 @@
 package com.inmobixpress.inmobixpressmanager.data.network.implement
 
+import android.net.Uri
+import com.google.firebase.storage.FirebaseStorage
 import com.inmobixpress.inmobixpressmanager.data.network.model.Country
 import com.inmobixpress.inmobixpressmanager.data.network.model.Department
 import com.inmobixpress.inmobixpressmanager.data.network.model.District
+import com.inmobixpress.inmobixpressmanager.data.network.model.Image
 import com.inmobixpress.inmobixpressmanager.data.network.model.NetworkResult
 import com.inmobixpress.inmobixpressmanager.data.network.model.OfferType
 import com.inmobixpress.inmobixpressmanager.data.network.model.Property
@@ -18,9 +21,13 @@ import io.ktor.http.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
-class PropertyServiceImpl @Inject constructor(private val httpClient: HttpClient) :
+class PropertyServiceImpl @Inject constructor(
+    private val httpClient: HttpClient,
+    private val storage: FirebaseStorage,
+) :
     PropertyService {
 
     override fun loadProperties(): Flow<NetworkResult<List<Property>>> = flow {
@@ -416,5 +423,57 @@ class PropertyServiceImpl @Inject constructor(private val httpClient: HttpClient
             parameter("id", id)
         }.toResult<String>()
         emit(response)
+    }
+
+    override fun loadImages(): Flow<NetworkResult<List<Image>>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(urlString = "/image").toResult<List<Image>>()
+        emit(response)
+    }
+
+    override fun loadImage(id: Int): Flow<NetworkResult<Image>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(urlString = "/image/{id?}") {
+            parameter("id", id)
+        }.toResult<Image>()
+        emit(response)
+    }
+
+    override fun registerImage(image: Image): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.post(urlString = "/image") {
+            contentType(ContentType.Application.Json)
+            setBody(image)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun updateImage(id: Int, image: Image): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.put(urlString = "/image") {
+            parameter("id", id)
+            contentType(ContentType.Application.Json)
+            setBody(image)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun deleteImage(id: Int): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.delete(urlString = "/image/{id?}") {
+            parameter("id", id)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun uploadImage(name: String, imageURI: Uri): Flow<NetworkResult<Uri>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            val response = storage.reference.child("images/$name.jpg")
+                .putFile(imageURI).await().storage.downloadUrl.await()
+            emit(NetworkResult.Success(response))
+        } catch (e: Exception) {
+            emit(NetworkResult.Error(error = e))
+        }
     }
 }

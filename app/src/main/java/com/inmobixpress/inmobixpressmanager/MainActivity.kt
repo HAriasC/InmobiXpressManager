@@ -18,6 +18,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import com.google.android.gms.tasks.OnCompleteListener
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
 import com.google.firebase.messaging.FirebaseMessaging
 import com.inmobixpress.inmobixpressmanager.ui.navigation.GlobalNavigation
 import com.inmobixpress.inmobixpressmanager.ui.theme.InmobiXpressManagerTheme
@@ -32,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
     private val loginViewModel: LoginViewModel by viewModels()
     private val mainViewModel: MainViewModel by viewModels()
+    private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -57,6 +61,7 @@ class MainActivity : ComponentActivity() {
                 GlobalNavigation(loginViewModel = loginViewModel, mainViewModel = mainViewModel)
             }
         }
+        authAAnonymously()
         askNotificationPermission()
         registerDevice()
     }
@@ -97,6 +102,22 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()*/
         })
     }
+
+    private fun authAAnonymously() {
+        auth = Firebase.auth
+        val currentUser = auth.currentUser
+        auth.signInAnonymously().addOnCompleteListener(this) { task ->
+            if (task.isSuccessful) {
+                // Sign in success, update UI with the signed-in user's information
+                Log.d("TAG", "signInAnonymously:success")
+                val user = auth.currentUser
+            } else {
+                // If sign in fails, display a message to the user.
+                Log.w("TAG", "signInAnonymously:failure", task.exception)
+            }
+        }
+    }
 }
+
 
 private val darkScrim = Color.argb(0x80, 0x1b, 0x1b, 0x1b)

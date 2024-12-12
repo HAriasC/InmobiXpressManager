@@ -1,6 +1,9 @@
 package com.inmobixpress.inmobixpressmanager.data.network.di
 
 import android.util.Log
+import com.google.firebase.Firebase
+import com.google.firebase.storage.FirebaseStorage
+import com.google.firebase.storage.storage
 import com.inmobixpress.inmobixpressmanager.data.network.implement.LoginServiceImpl
 import com.inmobixpress.inmobixpressmanager.data.network.implement.PropertyServiceImpl
 import com.inmobixpress.inmobixpressmanager.data.network.service.LoginService
@@ -73,6 +76,9 @@ object NetworkModule {
     }
 
     @Provides
+    fun provideFirebaseStorage() = Firebase.storage
+
+    @Provides
     fun provideDispatcher(): CoroutineDispatcher = Dispatchers.IO
 
     @Singleton
@@ -81,6 +87,6 @@ object NetworkModule {
 
     @Singleton
     @Provides
-    fun providePropertyService(httpClient: HttpClient): PropertyService =
-        PropertyServiceImpl(httpClient)
+    fun providePropertyService(httpClient: HttpClient, storage: FirebaseStorage): PropertyService =
+        PropertyServiceImpl(httpClient = httpClient, storage = storage)
 }

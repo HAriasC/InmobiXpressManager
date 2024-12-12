@@ -1,9 +1,11 @@
 package com.inmobixpress.inmobixpressmanager.repository
 
+import android.net.Uri
 import android.util.Log
 import com.inmobixpress.inmobixpressmanager.data.network.model.Country
 import com.inmobixpress.inmobixpressmanager.data.network.model.Department
 import com.inmobixpress.inmobixpressmanager.data.network.model.District
+import com.inmobixpress.inmobixpressmanager.data.network.model.Image
 import com.inmobixpress.inmobixpressmanager.data.network.model.NetworkResult
 import com.inmobixpress.inmobixpressmanager.data.network.model.OfferType
 import com.inmobixpress.inmobixpressmanager.data.network.model.Property
@@ -43,7 +45,7 @@ class PropertyRepository @Inject constructor(private val propertyService: Proper
     }
 
     fun registerProperty(
-        property: Property
+        property: Property,
     ): Flow<UIState<String>> {
         return propertyService.registerProperty(property = property).map { result ->
             when (result) {
@@ -480,6 +482,66 @@ class PropertyRepository @Inject constructor(private val propertyService: Proper
 
     fun deleteDistrict(id: Int): Flow<UIState<String>> {
         return propertyService.deleteDistrict(id = id).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadImages(): Flow<UIState<List<Image>>> {
+        return propertyService.loadImages().map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadImage(id: Int): Flow<UIState<Image>> {
+        return propertyService.loadImage(id = id).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun registerImage(image: Image): Flow<UIState<String>> {
+        return propertyService.registerImage(image = image).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun updateImage(id: Int, image: Image): Flow<UIState<String>> {
+        return propertyService.updateImage(id = id, image = image).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun deleteImage(id: Int): Flow<UIState<String>> {
+        return propertyService.deleteImage(id = id).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun uploadImages(name: String, imageURI: Uri): Flow<UIState<Uri>> {
+        return propertyService.uploadImage(name = name, imageURI = imageURI).map { result ->
             when (result) {
                 is NetworkResult.Success -> UIState.Success(result.data)
                 is NetworkResult.Loading -> UIState.Loading()

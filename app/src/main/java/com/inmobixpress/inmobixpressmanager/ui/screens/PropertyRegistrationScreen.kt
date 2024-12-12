@@ -1,6 +1,10 @@
 package com.inmobixpress.inmobixpressmanager.ui.screens
 
+import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -28,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.DoneOutline
+import androidx.compose.material.icons.filled.ImageSearch
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.AddLocation
 import androidx.compose.material.icons.outlined.AttachEmail
@@ -45,6 +50,8 @@ import androidx.compose.material.icons.outlined.PriceCheck
 import androidx.compose.material.icons.outlined.SquareFoot
 import androidx.compose.material.icons.outlined.Title
 import androidx.compose.material.icons.outlined.WaterDrop
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -73,6 +80,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion.CenterHorizontally
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -85,6 +93,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chillibits.composenumberpicker.PickerButton
+import com.google.firebase.Firebase
+import com.google.firebase.storage.storage
 import com.inmobixpress.inmobixpressmanager.R
 import com.inmobixpress.inmobixpressmanager.data.network.implement.PropertyServiceImpl
 import com.inmobixpress.inmobixpressmanager.data.network.model.Country
@@ -101,6 +111,7 @@ import com.inmobixpress.inmobixpressmanager.ui.components.MessageDialog
 import com.inmobixpress.inmobixpressmanager.ui.model.UIState
 import com.inmobixpress.inmobixpressmanager.ui.viewmodel.MainViewModel
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.delay
 
 @Composable
 fun PropertyRegistrationScreen(viewModel: MainViewModel) {
@@ -108,6 +119,7 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
     val showErrorDialog by viewModel.errorDialogVisible.observeAsState(initial = false)
     val showCompleteDialog by viewModel.completeDialogVisible.observeAsState(initial = false)
     var messageError by rememberSaveable { mutableStateOf("") }
+    var itemCount by rememberSaveable { mutableStateOf(0) }
     val properties by viewModel.properties.collectAsState()
     val offerTypes by viewModel.offerTypes.collectAsState()
     val propertyTypes by viewModel.propertyTypes.collectAsState()
@@ -118,6 +130,8 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
     val districts by viewModel.districts.collectAsState()
     val insert by viewModel.insert.collectAsState()
     val insertComplex by viewModel.insertComplex.collectAsState()
+    val uploadImage by viewModel.uploadImage.collectAsState()
+    val insertImage by viewModel.insertImage.collectAsState()
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -174,6 +188,17 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
                                 modifier = Modifier.padding(start = 8.dp, top = 16.dp, end = 8.dp)
                             )
                             Properties(viewModel = viewModel)
+                        }
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.size(16.dp))
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = CenterHorizontally
+                        ) {
+                            ImagePicker(itemCount = itemCount) { uris ->
+                                itemCount = uris.size
+                                viewModel.onImageUrisChanged(uris = uris)
+                            }
                         }
                         Spacer(modifier = Modifier.size(16.dp))
                         HorizontalDivider()
@@ -553,7 +578,6 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
 
             is UIState.Success -> {
                 LaunchedEffect(key1 = properties) {
-                    //viewModel.onLoadingVisible(visible = false)
                     viewModel.loadOfferTypes()
                 }
             }
@@ -576,7 +600,6 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
 
         when (offerTypes) {
             is UIState.Loading -> {
-                Log.e("LOAD", "loading")
                 LaunchedEffect(key1 = offerTypes) {
                     viewModel.onLoadingVisible(visible = true)
                 }
@@ -584,7 +607,6 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
 
             is UIState.Success -> {
                 LaunchedEffect(key1 = offerTypes) {
-                    //viewModel.onLoadingVisible(visible = false)
                     viewModel.loadPropertyTypes()
                 }
             }
@@ -613,7 +635,6 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
 
             is UIState.Success -> {
                 LaunchedEffect(key1 = propertyTypes) {
-                    //viewModel.onLoadingVisible(visible = false)
                     viewModel.onPropertyTypeListChanged(
                         propertyTypeList = (propertyTypes as UIState.Success<List<PropertyType>>).data
                     )
@@ -646,7 +667,6 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
 
             is UIState.Success -> {
                 LaunchedEffect(key1 = propertyStates) {
-                    //viewModel.onLoadingVisible(visible = false)
                     viewModel.onPropertyStateListChanged(
                         propertyStateList = (propertyStates as UIState.Success<List<PropertyState>>).data
                     )
@@ -679,7 +699,6 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
 
             is UIState.Success -> {
                 LaunchedEffect(key1 = countries) {
-                    //viewModel.onLoadingVisible(visible = false)
                     viewModel.loadDepartments()
                 }
             }
@@ -708,7 +727,6 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
 
             is UIState.Success -> {
                 LaunchedEffect(key1 = departments) {
-                    //viewModel.onLoadingVisible(visible = false)
                     viewModel.loadProvinces()
                 }
             }
@@ -737,7 +755,6 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
 
             is UIState.Success -> {
                 LaunchedEffect(key1 = provinces) {
-                    //viewModel.onLoadingVisible(visible = false)
                     viewModel.loadDistricts()
                 }
             }
@@ -827,6 +844,8 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
 
             is UIState.Success -> {
                 LaunchedEffect(key1 = insertComplex) {
+                    viewModel.executeUploadImages()
+                    delay(1500)
                     viewModel.onLoadingVisible(visible = false)
                     viewModel.onCompleteDialogVisible(visible = true)
                 }
@@ -842,6 +861,63 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
 
             is UIState.None -> {
                 LaunchedEffect(key1 = insertComplex) {
+                    viewModel.onLoadingVisible(visible = true)
+                }
+            }
+        }
+
+        when (uploadImage) {
+            is UIState.Loading -> {
+                LaunchedEffect(key1 = uploadImage) {
+                    viewModel.onLoadingVisible(visible = true)
+                }
+            }
+
+            is UIState.Success -> {
+                LaunchedEffect(key1 = uploadImage) {
+                    viewModel.executeRegisterMedia(uri = (uploadImage as UIState.Success<Uri>).data)
+
+                }
+            }
+
+            is UIState.Error -> {
+                LaunchedEffect(key1 = uploadImage) {
+                    messageError = (uploadImage as UIState.Error<Uri>).error.toString()
+                    viewModel.onLoadingVisible(visible = false)
+                    viewModel.onErrorDialogVisible(visible = true)
+                }
+            }
+
+            is UIState.None -> {
+                LaunchedEffect(key1 = uploadImage) {
+                    viewModel.onLoadingVisible(visible = true)
+                }
+            }
+        }
+
+        when (insertImage) {
+            is UIState.Loading -> {
+                LaunchedEffect(key1 = insertImage) {
+                    viewModel.onLoadingVisible(visible = true)
+                }
+            }
+
+            is UIState.Success -> {
+                LaunchedEffect(key1 = insertImage) {
+
+                }
+            }
+
+            is UIState.Error -> {
+                LaunchedEffect(key1 = insertImage) {
+                    messageError = (insertImage as UIState.Error<String>).error.toString()
+                    viewModel.onLoadingVisible(visible = false)
+                    viewModel.onErrorDialogVisible(visible = true)
+                }
+            }
+
+            is UIState.None -> {
+                LaunchedEffect(key1 = insertImage) {
                     viewModel.onLoadingVisible(visible = true)
                 }
             }
@@ -1757,6 +1833,44 @@ fun Country(viewModel: MainViewModel) {
     }
 }
 
+@Composable
+fun ImagePicker(itemCount: Int, onImagesSelected: (List<Uri>) -> Unit) {
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickMultipleVisualMedia(),
+        onResult = {
+            onImagesSelected(it)
+        }
+    )
+    BadgedBox(
+        badge = {
+            Badge(
+                containerColor = Color.Red,
+                contentColor = Color.White
+            ) {
+                Text("$itemCount")
+            }
+        }
+    ) {
+        ExtendedFloatingActionButton(
+            text = { Text("Selecionar Imagenes") },
+            onClick = {
+                launcher.launch(
+                    input = PickVisualMediaRequest(
+                        mediaType = ActivityResultContracts.PickVisualMedia.ImageOnly
+                    )
+                )
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.ImageSearch,
+                    contentDescription = "Eliminar",
+                    modifier = Modifier.size(size = 32.dp)
+                )
+            }
+        )
+    }
+}
+
 @Preview
 @Composable
 fun PropertyRegistrationScreenPreview() {
@@ -1764,7 +1878,8 @@ fun PropertyRegistrationScreenPreview() {
         viewModel = MainViewModel(
             PropertyRepository(
                 PropertyServiceImpl(
-                    HttpClient()
+                    httpClient = HttpClient(),
+                    storage = Firebase.storage
                 )
             )
         )

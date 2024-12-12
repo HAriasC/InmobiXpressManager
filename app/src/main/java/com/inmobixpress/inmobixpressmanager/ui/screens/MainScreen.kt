@@ -12,6 +12,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.Firebase
+import com.google.firebase.storage.storage
 import com.inmobixpress.inmobixpressmanager.data.network.implement.PropertyServiceImpl
 import com.inmobixpress.inmobixpressmanager.repository.PropertyRepository
 import com.inmobixpress.inmobixpressmanager.ui.components.DrawerNavigation
@@ -44,7 +46,8 @@ fun MainScreenPreview() {
         viewModel = MainViewModel(
             PropertyRepository(
                 PropertyServiceImpl(
-                    HttpClient()
+                    httpClient = HttpClient(),
+                    storage = Firebase.storage
                 )
             )
         ),

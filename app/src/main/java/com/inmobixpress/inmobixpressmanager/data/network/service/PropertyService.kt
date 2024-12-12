@@ -1,8 +1,10 @@
 package com.inmobixpress.inmobixpressmanager.data.network.service
 
+import android.net.Uri
 import com.inmobixpress.inmobixpressmanager.data.network.model.Country
 import com.inmobixpress.inmobixpressmanager.data.network.model.Department
 import com.inmobixpress.inmobixpressmanager.data.network.model.District
+import com.inmobixpress.inmobixpressmanager.data.network.model.Image
 import com.inmobixpress.inmobixpressmanager.data.network.model.NetworkResult
 import com.inmobixpress.inmobixpressmanager.data.network.model.OfferType
 import com.inmobixpress.inmobixpressmanager.data.network.model.Property
@@ -74,4 +76,11 @@ interface PropertyService {
     fun registerDistrict(district: District): Flow<NetworkResult<String>>
     fun updateDistrict(id: Int, district: District): Flow<NetworkResult<String>>
     fun deleteDistrict(id: Int): Flow<NetworkResult<String>>
+
+    fun loadImages(): Flow<NetworkResult<List<Image>>>
+    fun loadImage(id: Int): Flow<NetworkResult<Image>>
+    fun registerImage(image: Image): Flow<NetworkResult<String>>
+    fun updateImage(id: Int, image: Image): Flow<NetworkResult<String>>
+    fun deleteImage(id: Int): Flow<NetworkResult<String>>
+    fun uploadImage(name: String, imageURI: Uri): Flow<NetworkResult<Uri>>
 }

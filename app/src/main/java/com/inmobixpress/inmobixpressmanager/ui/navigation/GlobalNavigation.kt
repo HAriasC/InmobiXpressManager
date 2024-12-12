@@ -6,6 +6,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.Firebase
+import com.google.firebase.storage.storage
 import com.inmobixpress.inmobixpressmanager.data.network.implement.LoginServiceImpl
 import com.inmobixpress.inmobixpressmanager.data.network.implement.PropertyServiceImpl
 import com.inmobixpress.inmobixpressmanager.repository.LoginRepository
@@ -48,7 +50,8 @@ fun GlobalNavigationPreview() {
         mainViewModel = MainViewModel(
             PropertyRepository(
                 PropertyServiceImpl(
-                    HttpClient()
+                    httpClient = HttpClient(),
+                    storage = Firebase.storage
                 )
             )
         )
