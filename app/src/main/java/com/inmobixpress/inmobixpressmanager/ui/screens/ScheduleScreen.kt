@@ -1,9 +1,11 @@
 package com.inmobixpress.inmobixpressmanager.ui.screens
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -33,10 +35,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,10 +64,16 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.inmobixpress.inmobixpressmanager.data.network.model.Device
+import com.inmobixpress.inmobixpressmanager.data.network.model.RequestHasPublishing
 import com.inmobixpress.inmobixpressmanager.ui.model.Event
 import com.inmobixpress.inmobixpressmanager.ui.model.PositionedEvent
 import com.inmobixpress.inmobixpressmanager.ui.model.SplitType
+import com.inmobixpress.inmobixpressmanager.ui.model.UIState
+import com.inmobixpress.inmobixpressmanager.ui.utils.sortDatesDescending
+import com.inmobixpress.inmobixpressmanager.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.launch
+import kotlinx.datetime.toJavaLocalDateTime
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -72,8 +83,15 @@ import kotlin.math.roundToInt
 
 @Composable
 fun ScheduleScreen(
-    drawerState: DrawerState
+    viewModel: MainViewModel,
+    drawerState: DrawerState,
+    onItemClick: (Int) -> Unit,
+    onNavigateBack: () -> Unit
 ) {
+    val publishing by viewModel.requestXPublishing.collectAsState()
+    val devices by viewModel.devices.collectAsState()
+    var requestsItemList by rememberSaveable { mutableStateOf(listOf<RequestHasPublishing>()) }
+    var messageError by rememberSaveable { mutableStateOf("") }
     val uiColor = if (isSystemInDarkTheme()) White else Black
     val scope = rememberCoroutineScope()
 
@@ -123,7 +141,97 @@ fun ScheduleScreen(
         }
         Box(modifier = Modifier.padding(top = 100.dp)) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Schedule(sampleEvents)
+                Schedule(
+                    events = requestsItemList.map {
+                        Event(
+                            id = it.request.id,
+                            name = "${it.request.user.name} ${it.request.user.lastName}",
+                            color = viewModel.colors(id = it.request.requestState.id),
+                            start = it.request.date.toJavaLocalDateTime(),
+                            end = it.request.date.toJavaLocalDateTime().plusHours(1L),
+                            description = it.request.message
+                        )
+                    },
+                    onItemClick = onItemClick
+                )
+            }
+        }
+    }
+
+    when (devices) {
+        is UIState.Loading -> {
+            LaunchedEffect(key1 = devices) {
+                viewModel.onLoadingVisible(visible = true)
+            }
+        }
+
+        is UIState.Success -> {
+            LaunchedEffect(key1 = devices) {
+                viewModel.loadRequestsXPublishing()
+                if (devices is UIState.Success<List<Device>>) {
+                    viewModel.onDevicesChanged(
+                        devices = (devices as UIState.Success<List<Device>>).data
+                    )
+                }
+            }
+        }
+
+        is UIState.Error -> {
+            LaunchedEffect(key1 = devices) {
+                if (devices is UIState.Error<List<Device>>) {
+                    messageError = (devices as UIState.Error<List<Device>>).error.toString()
+                    Log.e("RxP", messageError)
+                }
+                viewModel.onLoadingVisible(visible = false)
+                viewModel.onErrorDialogVisible(visible = true)
+            }
+        }
+
+        is UIState.None -> {
+            LaunchedEffect(key1 = devices) {
+                viewModel.onLoadingVisible(visible = true)
+            }
+        }
+    }
+
+    when (publishing) {
+        is UIState.Loading -> {
+            LaunchedEffect(key1 = publishing) {
+                viewModel.onLoadingVisible(visible = true)
+            }
+        }
+
+        is UIState.Success -> {
+            LaunchedEffect(key1 = publishing) {
+                viewModel.onLoadingVisible(visible = false)
+                if (publishing is UIState.Success<List<RequestHasPublishing>>) {
+                    viewModel.onRequestsChanged(
+                        requests = sortDatesDescending(
+                            dates = (publishing as UIState.Success<List<RequestHasPublishing>>).data
+                        )
+                    )
+                    requestsItemList = sortDatesDescending(
+                        dates = (publishing as UIState.Success<List<RequestHasPublishing>>).data
+                    )
+                }
+            }
+        }
+
+        is UIState.Error -> {
+            LaunchedEffect(key1 = publishing) {
+                if (publishing is UIState.Error<List<RequestHasPublishing>>) {
+                    messageError =
+                        (publishing as UIState.Error<List<RequestHasPublishing>>).error.toString()
+                    Log.e("RxP", messageError)
+                }
+                viewModel.onLoadingVisible(visible = false)
+                viewModel.onErrorDialogVisible(visible = true)
+            }
+        }
+
+        is UIState.None -> {
+            LaunchedEffect(key1 = publishing) {
+                viewModel.onLoadingVisible(visible = true)
             }
         }
     }
@@ -137,6 +245,7 @@ val EventTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 fun BasicEvent(
     positionedEvent: PositionedEvent,
     modifier: Modifier = Modifier,
+    onItemClick: (Int) -> Unit
 ) {
     val event = positionedEvent.event
     val topRadius = if (
@@ -162,7 +271,7 @@ fun BasicEvent(
                     bottomStart = bottomRadius,
                 )
             )
-            .padding(4.dp)
+            .padding(4.dp).clickable { onItemClick(event.id) }
     ) {
         Text(
             text = "${event.start.format(EventTimeFormatter)} - ${
@@ -173,6 +282,7 @@ fun BasicEvent(
             style = MaterialTheme.typography.titleSmall,
             maxLines = 1,
             overflow = TextOverflow.Clip,
+            color = MaterialTheme.colorScheme.background
         )
 
         Text(
@@ -181,6 +291,7 @@ fun BasicEvent(
             fontWeight = FontWeight.Bold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.tertiary
         )
 
         if (event.description != null) {
@@ -189,6 +300,7 @@ fun BasicEvent(
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onPrimary
             )
         }
     }
@@ -277,7 +389,9 @@ fun EventPreview(
             event.end.toLocalTime()
         ),
         modifier = Modifier.sizeIn(maxHeight = 64.dp)
-    )
+    ) {
+
+    }
 }
 
 private class EventDataModifier(
@@ -538,11 +652,13 @@ sealed class ScheduleSize {
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Schedule(
+    onItemClick: (Int) -> Unit,
     events: List<Event>,
     modifier: Modifier = Modifier,
     eventContent: @Composable (positionedEvent: PositionedEvent) -> Unit = {
         BasicEvent(
-            positionedEvent = it
+            positionedEvent = it,
+            onItemClick = onItemClick
         )
     },
     dayHeader: @Composable (day: LocalDate) -> Unit = { BasicDayHeader(day = it) },
@@ -552,7 +668,7 @@ fun Schedule(
     minTime: LocalTime = LocalTime.MIN,
     maxTime: LocalTime = LocalTime.MAX,
     daySize: ScheduleSize = ScheduleSize.FixedSize(256.dp),
-    hourSize: ScheduleSize = ScheduleSize.FixedSize(64.dp),
+    hourSize: ScheduleSize = ScheduleSize.FixedSize(64.dp)
 ) {
     val numDays = ChronoUnit.DAYS.between(minDate, maxDate).toInt() + 1
     val numMinutes = ChronoUnit.MINUTES.between(minTime, maxTime).toInt() + 1
@@ -631,7 +747,8 @@ fun Schedule(
                     modifier = Modifier
                         .weight(1f)
                         .verticalScroll(verticalScrollState)
-                        .horizontalScroll(horizontalScrollState)
+                        .horizontalScroll(horizontalScrollState),
+                    onItemClick = onItemClick
                 )
             }
         }
@@ -641,11 +758,13 @@ fun Schedule(
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun BasicSchedule(
+    onItemClick: (Int) -> Unit,
     events: List<Event>,
     modifier: Modifier = Modifier,
     eventContent: @Composable (positionedEvent: PositionedEvent) -> Unit = {
         BasicEvent(
-            positionedEvent = it
+            positionedEvent = it,
+            onItemClick = onItemClick
         )
     },
     minDate: LocalDate = events.minByOrNull(Event::start)?.start?.toLocalDate() ?: LocalDate.now(),
@@ -732,11 +851,4 @@ fun BasicSchedule(
             }
         }
     }
-}
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Preview(showBackground = true)
-@Composable
-fun SchedulePreview() {
-    ScheduleScreen(drawerState = rememberDrawerState(initialValue = DrawerValue.Closed))
 }

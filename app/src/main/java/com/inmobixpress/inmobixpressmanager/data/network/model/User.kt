@@ -1,8 +1,11 @@
 package com.inmobixpress.inmobixpressmanager.data.network.model
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 import kotlinx.serialization.Serializable
 
 @Serializable
+@Parcelize
 data class User(
     val id: Int,
     val name: String,
@@ -15,4 +18,4 @@ data class User(
     val password: String,
     val documentType: DocumentType,
     val country: Country
-)
+) : Parcelable

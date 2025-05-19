@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @Parcelize
-data class DocumentType(
+data class RequestState(
     val id: Int,
     val name: String
 ) : Parcelable

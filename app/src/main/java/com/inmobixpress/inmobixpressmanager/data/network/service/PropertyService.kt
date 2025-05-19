@@ -3,7 +3,9 @@ package com.inmobixpress.inmobixpressmanager.data.network.service
 import android.net.Uri
 import com.inmobixpress.inmobixpressmanager.data.network.model.Country
 import com.inmobixpress.inmobixpressmanager.data.network.model.Department
+import com.inmobixpress.inmobixpressmanager.data.network.model.Device
 import com.inmobixpress.inmobixpressmanager.data.network.model.District
+import com.inmobixpress.inmobixpressmanager.data.network.model.Historical
 import com.inmobixpress.inmobixpressmanager.data.network.model.Image
 import com.inmobixpress.inmobixpressmanager.data.network.model.NetworkResult
 import com.inmobixpress.inmobixpressmanager.data.network.model.OfferType
@@ -12,6 +14,9 @@ import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyHasOfferT
 import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyState
 import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyType
 import com.inmobixpress.inmobixpressmanager.data.network.model.Province
+import com.inmobixpress.inmobixpressmanager.data.network.model.Publishing
+import com.inmobixpress.inmobixpressmanager.data.network.model.Request
+import com.inmobixpress.inmobixpressmanager.data.network.model.RequestHasPublishing
 import kotlinx.coroutines.flow.Flow
 
 interface PropertyService {
@@ -83,4 +88,51 @@ interface PropertyService {
     fun updateImage(id: Int, image: Image): Flow<NetworkResult<String>>
     fun deleteImage(id: Int): Flow<NetworkResult<String>>
     fun uploadImage(name: String, imageURI: Uri): Flow<NetworkResult<Uri>>
+
+    fun loadDevices(): Flow<NetworkResult<List<Device>>>
+    fun loadDevice(id: Int): Flow<NetworkResult<Device>>
+    fun registerDevice(device: Device): Flow<NetworkResult<String>>
+    fun updateDevice(id: Int, device: Device): Flow<NetworkResult<String>>
+    fun deleteDevice(id: Int): Flow<NetworkResult<String>>
+
+    fun loadPublishings(): Flow<NetworkResult<List<Publishing>>>
+    fun loadPublishing(id: Int): Flow<NetworkResult<Publishing>>
+    fun registerPublishing(publishing: Publishing): Flow<NetworkResult<String>>
+    fun updatePublishing(id: Int, publishing: Publishing): Flow<NetworkResult<String>>
+    fun deletePublishing(id: Int): Flow<NetworkResult<String>>
+
+    fun loadRequestsXPublishing(): Flow<NetworkResult<List<RequestHasPublishing>>>
+    fun loadRequestXPublishing(rId: Int, pId: Int): Flow<NetworkResult<RequestHasPublishing>>
+    fun registerRequestXPublishing(
+        requestHasPublishing: RequestHasPublishing,
+    ): Flow<NetworkResult<String>>
+
+    fun updateRequestXPublishing(
+        rId: Int,
+        pId: Int,
+        requestHasPublishing: RequestHasPublishing,
+    ): Flow<NetworkResult<String>>
+
+    fun deleteRequestXPublishing(rId: Int, pId: Int): Flow<NetworkResult<String>>
+
+    fun loadRequests(): Flow<NetworkResult<List<Request>>>
+    fun loadRequest(id: Int): Flow<NetworkResult<Request>>
+    fun registerRequest(request: Request): Flow<NetworkResult<String>>
+    fun updateRequest(id: Int, request: Request): Flow<NetworkResult<String>>
+    fun deleteRequest(id: Int): Flow<NetworkResult<String>>
+
+    fun loadHistorical(): Flow<NetworkResult<List<Historical>>>
+    fun loadHistorical(psId: Int, pId: Int): Flow<NetworkResult<Historical>>
+    fun registerHistorical(
+        historical: Historical,
+    ): Flow<NetworkResult<String>>
+
+    fun updateHistorical(
+        psId: Int,
+        pId: Int,
+        historical: Historical,
+    ): Flow<NetworkResult<String>>
+
+    fun deleteHistorical(psId: Int, pId: Int): Flow<NetworkResult<String>>
+    fun uploadDocument(name: String, docURI: Uri): Flow<NetworkResult<Uri>>
 }

@@ -3,14 +3,18 @@ package com.inmobixpress.inmobixpressmanager.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -18,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PersonPin
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.DrawerState
@@ -25,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationBar
@@ -36,20 +42,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.inmobixpress.inmobixpressmanager.R
+import com.inmobixpress.inmobixpressmanager.data.network.model.RequestHasPublishing
 import com.inmobixpress.inmobixpressmanager.ui.model.DrawerMenu
-import com.inmobixpress.inmobixpressmanager.ui.model.Email
 import com.inmobixpress.inmobixpressmanager.ui.model.NavigationItem
 import com.inmobixpress.inmobixpressmanager.ui.navigation.MainNavigation
 import com.inmobixpress.inmobixpressmanager.ui.screens.ReplyProfileImage
@@ -70,7 +78,11 @@ fun DrawerNavigation(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                DrawerContent(navController = navController, onLogOut = onLogOut) { route ->
+                DrawerContent(
+                    viewModel = viewModel,
+                    navController = navController,
+                    onLogOut = onLogOut
+                ) { route ->
                     coroutineScope.launch {
                         drawerState.close()
                     }
@@ -103,14 +115,26 @@ fun DrawerNavigation(
 
 @Composable
 private fun DrawerContent(
+    viewModel: MainViewModel,
     navController: NavHostController,
     onLogOut: () -> Unit,
     onMenuClick: (Any) -> Unit,
 ) {
+    val requests by viewModel.requests.observeAsState()
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        DrawerMenu.entries.forEach { item ->
+        Spacer(modifier = Modifier.height(20.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            Image(
+                imageVector = Icons.Default.PersonPin,
+                contentDescription = "",
+                modifier = Modifier.size(100.dp),
+                colorFilter = ColorFilter.tint(color = MaterialTheme.colorScheme.primary)
+            )
+        }
+        Spacer(modifier = Modifier.height(20.dp))
+        DrawerMenu.entries.forEachIndexed { index, item ->
             val selected = navController.currentBackStackEntryAsState()
                 .value?.destination?.route?.formatNavRoute() == item.route
             if (item.divider) {
@@ -126,7 +150,10 @@ private fun DrawerContent(
                 },
                 badge = {
                     if (item.badgeCount > 0) {
-                        Text(text = item.badgeCount.toString())
+                        Text(
+                            text = if (index == 0) requests?.size.toString()
+                            else item.badgeCount.toString()
+                        )
                     }
                 },
                 selected = selected,
@@ -193,27 +220,26 @@ fun BottomBar(
 @Composable
 fun ReplyDockedSearchBar(
     drawerState: DrawerState,
-    emails: List<Email>,
-    onSearchItemSelected: (Email) -> Unit,
+    requests: List<RequestHasPublishing>,
+    onSearchItemSelected: (RequestHasPublishing) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var query by remember { mutableStateOf("") }
     var active by remember { mutableStateOf(false) }
-    val searchResults = remember { mutableStateListOf<Email>() }
+    val searchResults = remember { mutableStateListOf<RequestHasPublishing>() }
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(query) {
         searchResults.clear()
         if (query.isNotEmpty()) {
             searchResults.addAll(
-                emails.filter {
-                    it.subject.startsWith(
-                        prefix = query,
-                        ignoreCase = true
-                    ) || it.sender.fullName.startsWith(
-                        prefix =
-                        query,
-                        ignoreCase = true
+                requests.filter {
+                    it.request.user.name.lowercase().contains(
+                        other = query
+                    ) || it.request.message.lowercase().contains(
+                        other = query
+                    ) || it.request.requestType.name.lowercase().contains(
+                        other = query
                     )
                 }
             )
@@ -272,14 +298,14 @@ fun ReplyDockedSearchBar(
             ) {
                 items(
                     count = searchResults.size,
-                    key = { index -> searchResults[index].id },
+                    key = { index -> searchResults[index].request.id },
                 ) { index ->
                     ListItem(
-                        headlineContent = { Text(searchResults[index].subject) },
-                        supportingContent = { Text(searchResults[index].sender.fullName) },
+                        headlineContent = { Text(searchResults[index].request.message) },
+                        supportingContent = { Text(searchResults[index].request.user.name) },
                         leadingContent = {
                             ReplyProfileImage(
-                                drawableResource = searchResults[index].sender.avatar,
+                                request = searchResults[index],
                                 description = "",
                                 modifier = Modifier
                                     .size(32.dp)

@@ -4,7 +4,9 @@ import android.net.Uri
 import android.util.Log
 import com.inmobixpress.inmobixpressmanager.data.network.model.Country
 import com.inmobixpress.inmobixpressmanager.data.network.model.Department
+import com.inmobixpress.inmobixpressmanager.data.network.model.Device
 import com.inmobixpress.inmobixpressmanager.data.network.model.District
+import com.inmobixpress.inmobixpressmanager.data.network.model.Historical
 import com.inmobixpress.inmobixpressmanager.data.network.model.Image
 import com.inmobixpress.inmobixpressmanager.data.network.model.NetworkResult
 import com.inmobixpress.inmobixpressmanager.data.network.model.OfferType
@@ -13,6 +15,9 @@ import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyHasOfferT
 import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyState
 import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyType
 import com.inmobixpress.inmobixpressmanager.data.network.model.Province
+import com.inmobixpress.inmobixpressmanager.data.network.model.Publishing
+import com.inmobixpress.inmobixpressmanager.data.network.model.Request
+import com.inmobixpress.inmobixpressmanager.data.network.model.RequestHasPublishing
 import com.inmobixpress.inmobixpressmanager.data.network.service.PropertyService
 import com.inmobixpress.inmobixpressmanager.ui.model.UIState
 import kotlinx.coroutines.flow.Flow
@@ -542,6 +547,284 @@ class PropertyRepository @Inject constructor(private val propertyService: Proper
 
     fun uploadImages(name: String, imageURI: Uri): Flow<UIState<Uri>> {
         return propertyService.uploadImage(name = name, imageURI = imageURI).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadDevices(): Flow<UIState<List<Device>>> {
+        return propertyService.loadDevices().map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadDevice(id: Int): Flow<UIState<Device>> {
+        return propertyService.loadDevice(id = id).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun registerDevice(device: Device): Flow<UIState<String>> {
+        return propertyService.registerDevice(device = device).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun updateDevice(id: Int, device: Device): Flow<UIState<String>> {
+        return propertyService.updateDevice(id = id, device = device).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun deleteDevice(id: Int): Flow<UIState<String>> {
+        return propertyService.deleteDevice(id = id).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadPublishings(): Flow<UIState<List<Publishing>>> {
+        return propertyService.loadPublishings().map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadPublishing(id: Int): Flow<UIState<Publishing>> {
+        return propertyService.loadPublishing(id = id).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun registerPublishing(publishing: Publishing): Flow<UIState<String>> {
+        return propertyService.registerPublishing(publishing = publishing).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun updatePublishing(id: Int, publishing: Publishing): Flow<UIState<String>> {
+        return propertyService.updatePublishing(id = id, publishing = publishing).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun deletePublishing(id: Int): Flow<UIState<String>> {
+        return propertyService.deletePublishing(id = id).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadRequestsXPublishing(): Flow<UIState<List<RequestHasPublishing>>> {
+        return propertyService.loadRequestsXPublishing().map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadRequestXPublishing(rId: Int, pId: Int): Flow<UIState<RequestHasPublishing>> {
+        return propertyService.loadRequestXPublishing(rId = rId, pId = pId).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun registerRequestXPublishing(
+        requestHasPublishing: RequestHasPublishing,
+    ): Flow<UIState<String>> {
+        return propertyService.registerRequestXPublishing(
+            requestHasPublishing = requestHasPublishing
+        ).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun updateRequestXPublishing(
+        rId: Int,
+        pId: Int,
+        requestHasPublishing: RequestHasPublishing,
+    ): Flow<UIState<String>> {
+        return propertyService.updateRequestXPublishing(
+            rId = rId, pId = pId, requestHasPublishing = requestHasPublishing
+        ).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun deleteRequestXPublishing(rId: Int, pId: Int): Flow<UIState<String>> {
+        return propertyService.deleteRequestXPublishing(rId = rId, pId = pId).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadRequests(): Flow<UIState<List<Request>>> {
+        return propertyService.loadRequests().map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadRequest(id: Int): Flow<UIState<Request>> {
+        return propertyService.loadRequest(id = id).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun registerRequest(request: Request): Flow<UIState<String>> {
+        return propertyService.registerRequest(request = request).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun updateRequest(id: Int, request: Request): Flow<UIState<String>> {
+        return propertyService.updateRequest(id = id, request = request).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun deleteRequest(id: Int): Flow<UIState<String>> {
+        return propertyService.deleteRequest(id = id).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadHistorical(): Flow<UIState<List<Historical>>> {
+        return propertyService.loadHistorical().map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun loadHistorical(psId: Int, pId: Int): Flow<UIState<Historical>> {
+        return propertyService.loadHistorical(psId = psId, pId = pId).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun registerHistorical(historical: Historical): Flow<UIState<String>> {
+        return propertyService.registerHistorical(
+            historical = historical
+        ).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun updateHistorical(
+        psId: Int,
+        pId: Int,
+        historical: Historical,
+    ): Flow<UIState<String>> {
+        return propertyService.updateHistorical(
+            psId = psId, pId = pId, historical = historical
+        ).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun deleteHistorical(psId: Int, pId: Int): Flow<UIState<String>> {
+        return propertyService.deleteHistorical(psId = psId, pId = pId).map { result ->
+            when (result) {
+                is NetworkResult.Success -> UIState.Success(result.data)
+                is NetworkResult.Loading -> UIState.Loading()
+                is NetworkResult.Error -> UIState.Error(result.error)
+            }
+        }
+    }
+
+    fun uploadDocument(name: String, docURI: Uri): Flow<UIState<Uri>> {
+        return propertyService.uploadDocument(name = name, docURI = docURI).map { result ->
             when (result) {
                 is NetworkResult.Success -> UIState.Success(result.data)
                 is NetworkResult.Loading -> UIState.Loading()

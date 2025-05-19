@@ -13,7 +13,7 @@ import com.inmobixpress.inmobixpressmanager.ui.screens.ChartScreen
 import com.inmobixpress.inmobixpressmanager.ui.screens.DashboardScreen
 import com.inmobixpress.inmobixpressmanager.ui.screens.DetailScreen
 import com.inmobixpress.inmobixpressmanager.ui.screens.InboxScreen
-import com.inmobixpress.inmobixpressmanager.ui.screens.PropertyRegistrationScreen
+import com.inmobixpress.inmobixpressmanager.ui.screens.MessageScreen
 import com.inmobixpress.inmobixpressmanager.ui.screens.ScheduleScreen
 import com.inmobixpress.inmobixpressmanager.ui.viewmodel.MainViewModel
 import kotlinx.coroutines.delay
@@ -40,7 +40,13 @@ fun MainNavigation(
                 )
             }
         ) {
-            InboxScreen(drawerState = drawerState)
+            viewModel.loadDevices()
+            InboxScreen(viewModel = viewModel, drawerState = drawerState) { id ->
+                val item = viewModel.requests.value!!.first { it.request.id == id }
+                viewModel.onVisitDayChanged(visitDay = "${item.request.date.date} ${item.request.date.time}")
+                viewModel.onVisitLocalChanged(visitLocal = item.request.date)
+                navController.navigate(NavScreen.Message(id = id))
+            }
         }
         composable<NavScreen.Message>(
             enterTransition = {
@@ -55,19 +61,20 @@ fun MainNavigation(
             }
         ) { backStackEntry ->
             val args = backStackEntry.toRoute<NavScreen.Message>()
-            /*MessageScreen(
+            viewModel.onLoadingVisible(visible = false)
+            MessageScreen(
                 viewModel = viewModel,
                 id = args.id,
                 onNavigateBack = {
                     scope.launch {
-                        viewModel.onVisibleContactBarChanged(false)
+                        //viewModel.onVisibleContactBarChanged(false)
                         delay(timeMillis = 200)
-                        viewModel.onVisibleChanged(true)
+                        //viewModel.onVisibleChanged(true)
                         delay(timeMillis = 200)
                         navController.popBackStack()
                     }
                 }
-            )*/
+            )
         }
         composable<NavScreen.Notification>(
             enterTransition = {
@@ -81,7 +88,15 @@ fun MainNavigation(
                 )
             }
         ) {
-            ScheduleScreen(drawerState = drawerState)
+            viewModel.onLoadingVisible(visible = false)
+            ScheduleScreen(viewModel = viewModel, drawerState = drawerState, onItemClick = { id ->
+                val item = viewModel.requests.value!!.first { it.request.id == id }
+                viewModel.onVisitDayChanged(visitDay = "${item.request.date.date} ${item.request.date.time}")
+                viewModel.onVisitLocalChanged(visitLocal = item.request.date)
+                navController.navigate(NavScreen.Message(id = id))
+            }) {
+                navController.navigateUp()
+            }
         }
         composable<NavScreen.Dashboard>(
             enterTransition = {
@@ -95,6 +110,7 @@ fun MainNavigation(
                 )
             }
         ) {
+            viewModel.onLoadingVisible(visible = false)
             DashboardScreen(drawerState = drawerState) { index ->
                 navController.navigate(NavScreen.Detail(id = index))
             }
@@ -138,6 +154,7 @@ fun MainNavigation(
                 )
             }
         ) {
+            viewModel.onLoadingVisible(visible = false)
             ChartScreen()
         }
     }

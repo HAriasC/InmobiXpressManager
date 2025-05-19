@@ -1,10 +1,10 @@
 package com.inmobixpress.inmobixpressmanager
 
+import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.Manifest
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -22,11 +22,13 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.auth
 import com.google.firebase.messaging.FirebaseMessaging
+import com.google.firebase.messaging.RemoteMessage
 import com.inmobixpress.inmobixpressmanager.ui.navigation.GlobalNavigation
 import com.inmobixpress.inmobixpressmanager.ui.theme.InmobiXpressManagerTheme
 import com.inmobixpress.inmobixpressmanager.ui.viewmodel.LoginViewModel
 import com.inmobixpress.inmobixpressmanager.ui.viewmodel.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
+
 
 private val lightScrim = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
 

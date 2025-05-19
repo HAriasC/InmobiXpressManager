@@ -4,7 +4,9 @@ import android.net.Uri
 import com.google.firebase.storage.FirebaseStorage
 import com.inmobixpress.inmobixpressmanager.data.network.model.Country
 import com.inmobixpress.inmobixpressmanager.data.network.model.Department
+import com.inmobixpress.inmobixpressmanager.data.network.model.Device
 import com.inmobixpress.inmobixpressmanager.data.network.model.District
+import com.inmobixpress.inmobixpressmanager.data.network.model.Historical
 import com.inmobixpress.inmobixpressmanager.data.network.model.Image
 import com.inmobixpress.inmobixpressmanager.data.network.model.NetworkResult
 import com.inmobixpress.inmobixpressmanager.data.network.model.OfferType
@@ -13,6 +15,9 @@ import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyHasOfferT
 import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyState
 import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyType
 import com.inmobixpress.inmobixpressmanager.data.network.model.Province
+import com.inmobixpress.inmobixpressmanager.data.network.model.Publishing
+import com.inmobixpress.inmobixpressmanager.data.network.model.Request
+import com.inmobixpress.inmobixpressmanager.data.network.model.RequestHasPublishing
 import com.inmobixpress.inmobixpressmanager.data.network.service.PropertyService
 import com.inmobixpress.inmobixpressmanager.data.network.utils.toResult
 import io.ktor.client.HttpClient
@@ -471,6 +476,249 @@ class PropertyServiceImpl @Inject constructor(
         try {
             val response = storage.reference.child("images/$name.jpg")
                 .putFile(imageURI).await().storage.downloadUrl.await()
+            emit(NetworkResult.Success(response))
+        } catch (e: Exception) {
+            emit(NetworkResult.Error(error = e))
+        }
+    }
+
+    override fun loadDevices(): Flow<NetworkResult<List<Device>>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(urlString = "/device").toResult<List<Device>>()
+        emit(response)
+    }
+
+    override fun loadDevice(id: Int): Flow<NetworkResult<Device>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(urlString = "/device/{id?}") {
+            parameter("id", id)
+        }.toResult<Device>()
+        emit(response)
+    }
+
+    override fun registerDevice(device: Device): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.post(urlString = "/device") {
+            contentType(ContentType.Application.Json)
+            setBody(device)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun updateDevice(id: Int, device: Device): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.put(urlString = "/device") {
+            parameter("id", id)
+            contentType(ContentType.Application.Json)
+            setBody(device)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun deleteDevice(id: Int): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.delete(urlString = "/device/{id?}") {
+            parameter("id", id)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun loadPublishings(): Flow<NetworkResult<List<Publishing>>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(urlString = "/publishing").toResult<List<Publishing>>()
+        emit(response)
+    }
+
+    override fun loadPublishing(id: Int): Flow<NetworkResult<Publishing>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(urlString = "/publishing/{id?}") {
+            parameter("id", id)
+        }.toResult<Publishing>()
+        emit(response)
+    }
+
+    override fun registerPublishing(publishing: Publishing): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.post(urlString = "/publishing") {
+            contentType(ContentType.Application.Json)
+            setBody(publishing)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun updatePublishing(id: Int, publishing: Publishing): Flow<NetworkResult<String>> =
+        flow {
+            emit(NetworkResult.Loading())
+            val response = httpClient.put(urlString = "/publishing") {
+                parameter("id", id)
+                contentType(ContentType.Application.Json)
+                setBody(publishing)
+            }.toResult<String>()
+            emit(response)
+        }
+
+    override fun deletePublishing(id: Int): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.delete(urlString = "/publishing/{id?}") {
+            parameter("id", id)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun loadRequestsXPublishing(): Flow<NetworkResult<List<RequestHasPublishing>>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(urlString = "/requestHasPublishing")
+            .toResult<List<RequestHasPublishing>>()
+        emit(response)
+    }
+
+    override fun loadRequestXPublishing(
+        rId: Int,
+        pId: Int
+    ): Flow<NetworkResult<RequestHasPublishing>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(
+            urlString = "/requestHasPublishing/{requestId?}/{publishingId?}"
+        ) {
+            parameter("requestId", rId)
+            parameter("publishingId", pId)
+        }.toResult<RequestHasPublishing>()
+        emit(response)
+    }
+
+    override fun registerRequestXPublishing(requestHasPublishing: RequestHasPublishing): Flow<NetworkResult<String>> =
+        flow {
+            emit(NetworkResult.Loading())
+            val response = httpClient.post(urlString = "/requestHasPublishing") {
+                contentType(ContentType.Application.Json)
+                setBody(requestHasPublishing)
+            }.toResult<String>()
+            emit(response)
+        }
+
+    override fun updateRequestXPublishing(
+        rId: Int,
+        pId: Int,
+        requestHasPublishing: RequestHasPublishing
+    ): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.put(urlString = "/requestHasPublishing") {
+            parameter("requestId", rId)
+            parameter("publishingId", pId)
+            contentType(ContentType.Application.Json)
+            setBody(requestHasPublishing)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun deleteRequestXPublishing(rId: Int, pId: Int): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response =
+            httpClient.delete(urlString = "/requestHasPublishing/{requestId?}/{publishingId?}") {
+                parameter("requestId", rId)
+                parameter("publishingId", pId)
+            }.toResult<String>()
+        emit(response)
+    }
+
+    override fun loadRequests(): Flow<NetworkResult<List<Request>>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(urlString = "/request").toResult<List<Request>>()
+        emit(response)
+    }
+
+    override fun loadRequest(id: Int): Flow<NetworkResult<Request>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(urlString = "/request/{id?}") {
+            parameter("id", id)
+        }.toResult<Request>()
+        emit(response)
+    }
+
+    override fun registerRequest(request: Request): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.post(urlString = "/request") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun updateRequest(id: Int, request: Request): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.put(urlString = "/request") {
+            parameter("id", id)
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun deleteRequest(id: Int): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.delete(urlString = "/request/{id?}") {
+            parameter("id", id)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun loadHistorical(): Flow<NetworkResult<List<Historical>>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(urlString = "/historical")
+            .toResult<List<Historical>>()
+        emit(response)
+    }
+
+    override fun loadHistorical(psId: Int, pId: Int): Flow<NetworkResult<Historical>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.get(
+            urlString = "/historical/{publishingStateId?}/{publishingId?}"
+        ) {
+            parameter("publishingStateId", psId)
+            parameter("publishingId", pId)
+        }.toResult<Historical>()
+        emit(response)
+    }
+
+    override fun registerHistorical(historical: Historical): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.post(urlString = "/historical") {
+            contentType(ContentType.Application.Json)
+            setBody(historical)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun updateHistorical(
+        psId: Int,
+        pId: Int,
+        historical: Historical
+    ): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response = httpClient.put(urlString = "/historical") {
+            parameter("publishingStateId", psId)
+            parameter("publishingId", pId)
+            contentType(ContentType.Application.Json)
+            setBody(historical)
+        }.toResult<String>()
+        emit(response)
+    }
+
+    override fun deleteHistorical(psId: Int, pId: Int): Flow<NetworkResult<String>> = flow {
+        emit(NetworkResult.Loading())
+        val response =
+            httpClient.delete(urlString = "/historical/{publishingStateId?}/{publishingId?}") {
+                parameter("publishingStateId", psId)
+                parameter("publishingId", pId)
+            }.toResult<String>()
+        emit(response)
+    }
+
+    override fun uploadDocument(name: String, docURI: Uri): Flow<NetworkResult<Uri>> = flow {
+        emit(NetworkResult.Loading())
+        try {
+            val response = storage.reference.child("contracts/$name.pdf")
+                .putFile(docURI).await().storage.downloadUrl.await()
             emit(NetworkResult.Success(response))
         } catch (e: Exception) {
             emit(NetworkResult.Error(error = e))

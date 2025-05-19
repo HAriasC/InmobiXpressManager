@@ -6,7 +6,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @Parcelize
-data class DocumentType(
+data class Publishing(
     val id: Int,
-    val name: String
+    val numberView: Int,
+    val property: Property
 ) : Parcelable

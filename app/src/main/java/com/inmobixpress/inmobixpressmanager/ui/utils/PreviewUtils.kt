@@ -10,54 +10,40 @@ val allEmails = listOf(
         id = 0L,
         sender = LocalAccountsDataProvider.getContactAccountByUid(9L),
         recipients = listOf(LocalAccountsDataProvider.getDefaultUserAccount()),
-        subject = "Package shipped!",
+        subject = "Mensaje",
         body = """
-                Cucumber Mask Facial has shipped.
-
-                Keep an eye out for a package to arrive between this Thursday and next Tuesday. If for any reason you don't receive your package before the end of next week, please reach out to us for details on your shipment.
-
-                As always, thank you for shopping with us and we hope you love our specially formulated Cucumber Mask!
+                Estoy interesado en departamento ubicado en Calle Jorge Chavez 728, espero su pronta respuesta
             """.trimIndent(),
-        createdAt = "20 mins ago",
+        createdAt = "Hace 20 minutos",
         isStarred = true,
     ),
     Email(
         id = 1L,
         sender = LocalAccountsDataProvider.getContactAccountByUid(6L),
         recipients = listOf(LocalAccountsDataProvider.getDefaultUserAccount()),
-        subject = "Brunch this weekend?",
+        subject = "Mensaje",
         body = """
-                I'll be in your neighborhood doing errands and was hoping to catch you for a coffee this Saturday. If you don't have anything scheduled, it would be great to see you! It feels like its been forever.
-
-                If we do get a chance to get together, remind me to tell you about Kim. She stopped over at the house to say hey to the kids and told me all about her trip to Mexico.
-
-                Talk to you soon,
-
-                Ali
+                Consulta sobre disponibilidad del inmueble en Lima.
             """.trimIndent(),
-        createdAt = "40 mins ago",
+        createdAt = "Hace 40 minutos",
     ),
     Email(
         2L,
         LocalAccountsDataProvider.getContactAccountByUid(5L),
         listOf(LocalAccountsDataProvider.getDefaultUserAccount()),
-        "Bonjour from Paris",
-        "Here are some great shots from my trip...",
-        createdAt = "1 hour ago",
+        "Mensaje",
+        "Solicitud de visita para el inmueble en Miraflores.",
+        createdAt = "Hace 1 hour atras",
     ),
     Email(
         3L,
         LocalAccountsDataProvider.getContactAccountByUid(8L),
         listOf(LocalAccountsDataProvider.getDefaultUserAccount()),
-        "High school reunion?",
+        "Mensaje",
         """
-                Hi friends,
-
-                I was at the grocery store on Sunday night.. when I ran into Genie Williams! I almost didn't recognize her afer 20 years!
-
-                Anyway, it turns out she is on the organizing committee for the high school reunion this fall. I don't know if you were planning on going or not, but she could definitely use our help in trying to track down lots of missing alums. If you can make it, we're doing a little phone-tree party at her place next Saturday, hoping that if we can find one person, thee more will...
-            """.trimIndent(),
-        createdAt = "2 hours ago",
+            Consulta sobre precio de alquiler en San Borja.
+        """.trimIndent(),
+        createdAt = "Hace 2 houras",
         mailbox = MailboxType.SENT,
     ),
     Email(
@@ -68,15 +54,11 @@ val allEmails = listOf(
             LocalAccountsDataProvider.getContactAccountByUid(8L),
             LocalAccountsDataProvider.getContactAccountByUid(5L)
         ),
-        subject = "Brazil trip",
+        subject = "Mensaje",
         body = """
-                Thought we might be able to go over some details about our upcoming vacation.
-
-                I've been doing a bit of research and have come across a few paces in Northern Brazil that I think we should check out. One, the north has some of the most predictable wind on the planet. I'd love to get out on the ocean and kitesurf for a couple of days if we're going to be anywhere near or around Taiba. I hear it's beautiful there and if you're up for it, I'd love to go. Other than that, I haven't spent too much time looking into places along our road trip route. I'm assuming we can find places to stay and things to do as we drive and find places we think look interesting. But... I know you're more of a planner, so if you have ideas or places in mind, lets jot some ideas down!
-
-                Maybe we can jump on the phone later today if you have a second.
+                'Solicitud de visita para un inmueble en Barranco.'
             """.trimIndent(),
-        createdAt = "2 hours ago",
+        createdAt = "Ayer",
         isStarred = true,
     ),
     Email(
@@ -194,7 +176,7 @@ object LocalAccountsDataProvider {
         Account(
             id = 4L,
             uid = 1L,
-            firstName = "Tracy",
+            firstName = "Juan",
             lastName = "Alvarez",
             email = "tracealvie@gmail.com",
             altEmail = "tracealvie@gravity.com",
@@ -203,7 +185,7 @@ object LocalAccountsDataProvider {
         Account(
             id = 5L,
             uid = 2L,
-            firstName = "Allison",
+            firstName = "Maria",
             lastName = "Trabucco",
             email = "atrabucco222@gmail.com",
             altEmail = "atrabucco222@work.com",
@@ -212,7 +194,7 @@ object LocalAccountsDataProvider {
         Account(
             id = 6L,
             uid = 3L,
-            firstName = "Ali",
+            firstName = "Carlos",
             lastName = "Connors",
             email = "aliconnors@gmail.com",
             altEmail = "aliconnors@android.com",
@@ -221,7 +203,7 @@ object LocalAccountsDataProvider {
         Account(
             id = 7L,
             uid = 4L,
-            firstName = "Alberto",
+            firstName = "Arianne",
             lastName = "Williams",
             email = "albertowilliams124@gmail.com",
             altEmail = "albertowilliams124@chromeos.com",
@@ -230,7 +212,7 @@ object LocalAccountsDataProvider {
         Account(
             id = 8L,
             uid = 5L,
-            firstName = "Kim",
+            firstName = "Luis",
             lastName = "Alen",
             email = "alen13@gmail.com",
             altEmail = "alen13@mountainview.gov",
@@ -239,7 +221,7 @@ object LocalAccountsDataProvider {
         Account(
             id = 9L,
             uid = 6L,
-            firstName = "Google",
+            firstName = "Lucia",
             lastName = "Express",
             email = "express@google.com",
             altEmail = "express@gmail.com",
@@ -257,7 +239,7 @@ object LocalAccountsDataProvider {
         Account(
             id = 11L,
             uid = 8L,
-            firstName = "Trevor",
+            firstName = "Juan",
             lastName = "Hansen",
             email = "trevorhandsen@gmail.com",
             altEmail = "trevorhandsen@express.com",

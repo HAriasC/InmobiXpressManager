@@ -5,9 +5,6 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -93,8 +90,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.chillibits.composenumberpicker.PickerButton
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.Firebase
 import com.google.firebase.storage.storage
+import com.google.maps.android.compose.rememberCameraPositionState
 import com.inmobixpress.inmobixpressmanager.R
 import com.inmobixpress.inmobixpressmanager.data.network.implement.PropertyServiceImpl
 import com.inmobixpress.inmobixpressmanager.data.network.model.Country
@@ -106,8 +106,8 @@ import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyState
 import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyType
 import com.inmobixpress.inmobixpressmanager.data.network.model.Province
 import com.inmobixpress.inmobixpressmanager.repository.PropertyRepository
-import com.inmobixpress.inmobixpressmanager.ui.components.LoadingScreen
 import com.inmobixpress.inmobixpressmanager.ui.components.MessageDialog
+import com.inmobixpress.inmobixpressmanager.ui.components.SearchAddressBottomSheet
 import com.inmobixpress.inmobixpressmanager.ui.model.UIState
 import com.inmobixpress.inmobixpressmanager.ui.viewmodel.MainViewModel
 import io.ktor.client.HttpClient
@@ -118,8 +118,9 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
     val showLoading by viewModel.loadingVisible.observeAsState(initial = true)
     val showErrorDialog by viewModel.errorDialogVisible.observeAsState(initial = false)
     val showCompleteDialog by viewModel.completeDialogVisible.observeAsState(initial = false)
+    val showSearchAddressBottomSheet by viewModel.searchAddressBottomSheetVisible.observeAsState()
     var messageError by rememberSaveable { mutableStateOf("") }
-    var itemCount by rememberSaveable { mutableStateOf(0) }
+    var itemCount by rememberSaveable { mutableIntStateOf(0) }
     val properties by viewModel.properties.collectAsState()
     val offerTypes by viewModel.offerTypes.collectAsState()
     val propertyTypes by viewModel.propertyTypes.collectAsState()
@@ -132,6 +133,7 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
     val insertComplex by viewModel.insertComplex.collectAsState()
     val uploadImage by viewModel.uploadImage.collectAsState()
     val insertImage by viewModel.insertImage.collectAsState()
+    val insertPublishing by viewModel.insertPublishing.collectAsState()
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -454,7 +456,9 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
                                 Row {
                                     ExtendedFloatingActionButton(
                                         text = { Text("Google Maps") },
-                                        onClick = { /* Tus acciones */ },
+                                        onClick = {
+                                            viewModel.onSearchAddressBottomSheetVisible(visible = true)
+                                        },
                                         icon = {
                                             Image(
                                                 imageVector = ImageVector.vectorResource(
@@ -498,7 +502,7 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
                                 contentDescription = "",
                                 modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 6.dp)
                             )
-                            Province(viewModel = viewModel)
+                            Department(viewModel = viewModel)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -506,7 +510,7 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
                                 contentDescription = "",
                                 modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 6.dp)
                             )
-                            Department(viewModel = viewModel)
+                            Province(viewModel = viewModel)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -524,12 +528,21 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
             }
         }
 
-        AnimatedVisibility(
-            visible = showLoading,
-            enter = slideInVertically(initialOffsetY = { it }),
-            exit = slideOutVertically(targetOffsetY = { it }),
-        ) {
-            LoadingScreen(message = "Cargando...")
+        if (showSearchAddressBottomSheet == true) {
+            val miraflores = LatLng(-12.122512, -77.031388)
+            val cameraPositionState = rememberCameraPositionState {
+                position = CameraPosition.fromLatLngZoom(miraflores, 14f)
+            }
+            SearchAddressBottomSheet(
+                viewModel = viewModel,
+                cameraPositionState = cameraPositionState,
+                onItemClick = { item ->
+                    viewModel.onLatitudeChanged(latitude = item.latitude.toString())
+                    viewModel.onLongitudeChanged(longitude = item.longitude.toString())
+                    viewModel.onAltitudeChanged(altitude = "100")
+                    viewModel.onAltitudeBaseChanged(altitudeBase = "100")
+                }
+            )
         }
 
         when {
@@ -845,6 +858,7 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
             is UIState.Success -> {
                 LaunchedEffect(key1 = insertComplex) {
                     viewModel.executeUploadImages()
+                    viewModel.executeRegisterPublishing()
                     delay(1500)
                     viewModel.onLoadingVisible(visible = false)
                     viewModel.onCompleteDialogVisible(visible = true)
@@ -922,6 +936,35 @@ fun PropertyRegistrationScreen(viewModel: MainViewModel) {
                 }
             }
         }
+
+        when (insertPublishing) {
+            is UIState.Loading -> {
+                LaunchedEffect(key1 = insertPublishing) {
+                    viewModel.onLoadingVisible(visible = true)
+                }
+            }
+
+            is UIState.Success -> {
+                LaunchedEffect(key1 = insertPublishing) {
+                    delay(2000)
+                    viewModel.clearForm()
+                }
+            }
+
+            is UIState.Error -> {
+                LaunchedEffect(key1 = insertPublishing) {
+                    messageError = (insertPublishing as UIState.Error<String>).error.toString()
+                    viewModel.onLoadingVisible(visible = false)
+                    viewModel.onErrorDialogVisible(visible = true)
+                }
+            }
+
+            is UIState.None -> {
+                LaunchedEffect(key1 = insertPublishing) {
+                    viewModel.onLoadingVisible(visible = true)
+                }
+            }
+        }
     }
 }
 
@@ -976,13 +1019,15 @@ fun Title(viewModel: MainViewModel, onFocusChanged: () -> Unit) {
     val title by viewModel.title.observeAsState(initial = "")
     val nameError by viewModel.titleError.observeAsState(initial = false)
     val nameMessageError by viewModel.titleMessageError.observeAsState(initial = "")
+    val maxChar = 300
     OutlinedTextField(
         value = title,
         onValueChange = {
-            viewModel.onTitleChanged(it)
+            if (it.length <= maxChar) {
+                viewModel.onTitleChanged(it)
+            }
             viewModel.validateTitle()
         },
-        singleLine = true,
         label = { Text("Titulo") },
         supportingText = {
             Row {
@@ -990,6 +1035,8 @@ fun Title(viewModel: MainViewModel, onFocusChanged: () -> Unit) {
                     text = if (nameError) nameMessageError else "",
                     modifier = Modifier.clearAndSetSemantics { }
                 )
+                Spacer(Modifier.weight(1f))
+                Text("${title.length} / $maxChar")
             }
         },
         isError = nameError,
@@ -1018,7 +1065,6 @@ fun Description(viewModel: MainViewModel, onFocusChanged: () -> Unit) {
             viewModel.onDescriptionChanged(it)
             viewModel.validateDescription()
         },
-        singleLine = true,
         label = { Text("Descripción") },
         supportingText = {
             Row {
@@ -1026,6 +1072,14 @@ fun Description(viewModel: MainViewModel, onFocusChanged: () -> Unit) {
                     text = if (descriptionError) descriptionMessageError else "",
                     modifier = Modifier.clearAndSetSemantics { }
                 )
+            }
+            Row {
+                Text(
+                    text = if (descriptionError) descriptionMessageError else "",
+                    modifier = Modifier.clearAndSetSemantics { }
+                )
+                Spacer(Modifier.weight(1f))
+                Text("${description.length} / 5000")
             }
         },
         isError = descriptionError,
@@ -1084,10 +1138,13 @@ fun Address(viewModel: MainViewModel, onFocusChanged: () -> Unit) {
     val address by viewModel.address.observeAsState(initial = "")
     val addressError by viewModel.addressError.observeAsState(initial = false)
     val addressMessageError by viewModel.addressMessageError.observeAsState(initial = "")
+    val maxChar = 200
     OutlinedTextField(
         value = address,
         onValueChange = {
-            viewModel.onAddressChanged(it)
+            if (it.length <= maxChar) {
+                viewModel.onAddressChanged(it)
+            }
             viewModel.validateAddress()
         },
         singleLine = true,
@@ -1098,6 +1155,8 @@ fun Address(viewModel: MainViewModel, onFocusChanged: () -> Unit) {
                     text = if (addressError) addressMessageError else "",
                     modifier = Modifier.clearAndSetSemantics { }
                 )
+                Spacer(Modifier.weight(1f))
+                Text("${address.length} / $maxChar")
             }
         },
         isError = addressError,
@@ -1120,10 +1179,13 @@ fun PostalCode(viewModel: MainViewModel, onFocusChanged: () -> Unit) {
     val postal by viewModel.postal.observeAsState(initial = "")
     val postalError by viewModel.postalError.observeAsState(initial = false)
     val postalMessageError by viewModel.postalMessageError.observeAsState(initial = "")
+    val maxChar = 50
     OutlinedTextField(
         value = postal,
         onValueChange = {
-            viewModel.onPostalChanged(it)
+            if (it.length <= maxChar) {
+                viewModel.onPostalChanged(it)
+            }
             viewModel.validatePostal()
         },
         singleLine = true,
@@ -1134,6 +1196,8 @@ fun PostalCode(viewModel: MainViewModel, onFocusChanged: () -> Unit) {
                     text = if (postalError) postalMessageError else "",
                     modifier = Modifier.clearAndSetSemantics { }
                 )
+                Spacer(Modifier.weight(1f))
+                Text("${postal.length} / $maxChar")
             }
         },
         isError = postalError,

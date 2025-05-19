@@ -1,7 +1,6 @@
 package com.inmobixpress.inmobixpressmanager.ui.screens
 
 import android.content.res.Configuration
-import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
@@ -30,10 +29,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MapsHomeWork
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -44,6 +46,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -88,6 +93,8 @@ fun LoginScreen(
 ) {
     val showLoading by viewModel.loadingVisible.observeAsState(initial = false)
     val showErrorDialog by viewModel.errorDialogVisible.observeAsState(initial = false)
+    var titleError by rememberSaveable { mutableStateOf("") }
+    var messageError by rememberSaveable { mutableStateOf("") }
     val result by viewModel.result.collectAsState()
 
     Surface {
@@ -162,8 +169,8 @@ fun LoginScreen(
                         viewModel.onErrorDialogVisible(visible = false)
                         viewModel.reset()
                     },
-                    dialogTitle = "Lo sentimos, ocurrió un error",
-                    dialogText = (result as UIState.Error<User>).error.message.toString(),
+                    dialogTitle = titleError,
+                    dialogText = messageError,
                     icon = Icons.Default.Warning,
                     isError = true,
                     confirmationText = "Entendido"
@@ -175,13 +182,21 @@ fun LoginScreen(
             is UIState.Loading -> viewModel.onLoadingVisible(visible = true)
 
             is UIState.Success -> {
-                onNavigateToMain((result as UIState.Success<User>).data)
+                if ((result as UIState.Success<User>).data.username == "admin") {
+                    onNavigateToMain((result as UIState.Success<User>).data)
+                } else {
+                    titleError = "Permiso denegado"
+                    messageError = "No tiene autorización para acceder a este apartado, consulte con el administrador"
+                    viewModel.onErrorDialogVisible(visible = true)
+                }
                 viewModel.clearForm()
                 viewModel.reset()
                 viewModel.onLoadingVisible(visible = false)
             }
 
             is UIState.Error -> {
+                titleError = "Lo sentimos, ocurrió un error"
+                messageError = (result as UIState.Error<User>).error.message.toString()
                 viewModel.onLoadingVisible(visible = false)
                 viewModel.onErrorDialogVisible(visible = true)
             }
@@ -263,6 +278,7 @@ private fun LoginSection(viewModel: LoginViewModel) {
         ),
         error = passwordError,
         errorMessage = passwordMessageError,
+        isPassword = true,
         onValueChange = {
             viewModel.onPasswordChanged(it)
             viewModel.validateForm()
@@ -371,9 +387,11 @@ fun LoginTextField(
     onValueChange: (String) -> Unit,
     onKeyboardActions: () -> Unit,
     onFocusChanged: () -> Unit,
+    isPassword: Boolean = false,
     visualTransformation: VisualTransformation = VisualTransformation.None,
 ) {
     val uiColor = if (isSystemInDarkTheme()) White else Black
+    val showPassword = rememberSaveable() { mutableStateOf(false) }
     OutlinedTextField(
         modifier = modifier.semantics {
             if (error) error(message = errorMessage)
@@ -408,15 +426,32 @@ fun LoginTextField(
                 .copy(alpha = 0.6f) else Color(0xFFF1F5F9),
         ),
         trailingIcon = {
-            TextButton(onClick = { /*TODO*/ }) {
-                Text(
-                    text = trailing,
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-                    color = uiColor
-                )
+            if (isPassword) {
+                val icon = if (showPassword.value) {
+                    Icons.Filled.Visibility
+                } else {
+                    Icons.Filled.VisibilityOff
+                }
+
+                IconButton(onClick = { showPassword.value = !showPassword.value }) {
+                    Icon(
+                        icon,
+                        contentDescription = "Visibility"
+                    )
+                }
+            } else {
+                TextButton(onClick = { /*TODO*/ }) {
+                    Text(
+                        text = trailing,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
+                        color = uiColor
+                    )
+                }
             }
         },
-        visualTransformation = visualTransformation
+        visualTransformation = if (isPassword) {
+            if (showPassword.value) VisualTransformation.None else PasswordVisualTransformation()
+        } else visualTransformation
     )
 }
 

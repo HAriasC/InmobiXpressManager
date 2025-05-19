@@ -1,14 +1,26 @@
 package com.inmobixpress.inmobixpressmanager.ui.viewmodel
 
 import android.net.Uri
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.libraries.places.api.net.PlacesClient
 import com.inmobixpress.inmobixpressmanager.data.network.model.Country
 import com.inmobixpress.inmobixpressmanager.data.network.model.Department
+import com.inmobixpress.inmobixpressmanager.data.network.model.Device
 import com.inmobixpress.inmobixpressmanager.data.network.model.District
+import com.inmobixpress.inmobixpressmanager.data.network.model.Historical
 import com.inmobixpress.inmobixpressmanager.data.network.model.Image
 import com.inmobixpress.inmobixpressmanager.data.network.model.Location
 import com.inmobixpress.inmobixpressmanager.data.network.model.OfferType
@@ -17,12 +29,23 @@ import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyHasOfferT
 import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyState
 import com.inmobixpress.inmobixpressmanager.data.network.model.PropertyType
 import com.inmobixpress.inmobixpressmanager.data.network.model.Province
+import com.inmobixpress.inmobixpressmanager.data.network.model.Publishing
+import com.inmobixpress.inmobixpressmanager.data.network.model.Request
+import com.inmobixpress.inmobixpressmanager.data.network.model.RequestHasPublishing
+import com.inmobixpress.inmobixpressmanager.data.network.model.RequestState
 import com.inmobixpress.inmobixpressmanager.data.network.model.User
 import com.inmobixpress.inmobixpressmanager.repository.PropertyRepository
+import com.inmobixpress.inmobixpressmanager.ui.model.ServiceMarker
 import com.inmobixpress.inmobixpressmanager.ui.model.UIState
 import com.inmobixpress.inmobixpressmanager.ui.model.UIState.Error
 import com.inmobixpress.inmobixpressmanager.ui.model.UIState.Loading
 import com.inmobixpress.inmobixpressmanager.ui.model.UIState.None
+import com.inmobixpress.inmobixpressmanager.ui.model.AutocompleteResult
+import com.inmobixpress.inmobixpressmanager.ui.utils.autocompleteAddress
+import com.inmobixpress.inmobixpressmanager.ui.utils.getCoordinates
+import com.inmobixpress.inmobixpressmanager.ui.utils.millisToLocalDateTime
+import com.inmobixpress.inmobixpressmanager.ui.utils.timeToMillis
+import com.inmobixpress.inmobixpressmanager.ui.utils.today
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -34,9 +57,10 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.toKotlinLocalDateTime
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.uuid.Uuid
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -52,6 +76,21 @@ class MainViewModel @Inject constructor(
 
     private val _completeDialogVisible = MutableLiveData<Boolean>()
     val completeDialogVisible: LiveData<Boolean> = _completeDialogVisible
+
+    private val _searchAddressBottomSheetVisible = MutableLiveData<Boolean>()
+    val searchAddressBottomSheetVisible: LiveData<Boolean> = _searchAddressBottomSheetVisible
+
+    private val _inboxDetailBottomSheetVisible = MutableLiveData<Boolean>()
+    val inboxDetailBottomSheetVisible: LiveData<Boolean> = _inboxDetailBottomSheetVisible
+
+    private val _visitDayDialogVisible = MutableLiveData<Boolean>()
+    val visitDayDialogVisible: LiveData<Boolean> = _visitDayDialogVisible
+
+    private val _visitDayTimeDialogVisible = MutableLiveData<Boolean>()
+    val visitDayTimeDialogVisible: LiveData<Boolean> = _visitDayTimeDialogVisible
+
+    private val _confirmDialogVisible = MutableLiveData<Boolean>()
+    val confirmDialogVisible: LiveData<Boolean> = _confirmDialogVisible
 
     private val _propertyItem = MutableLiveData<String>()
     val propertyItem: LiveData<String> = _propertyItem
@@ -251,6 +290,9 @@ class MainViewModel @Inject constructor(
     private val _images = MutableStateFlow<UIState<List<Image>>>(Loading())
     val images = _images.asStateFlow()
 
+    private val _devices = MutableStateFlow<UIState<List<Device>>>(Loading())
+    val devices = _devices.asStateFlow()
+
     private val _properties = MutableStateFlow<UIState<List<Property>>>(Loading())
     val properties = _properties.asStateFlow()
 
@@ -266,11 +308,29 @@ class MainViewModel @Inject constructor(
     private val _uploadImage = MutableStateFlow<UIState<Uri>>(None())
     val uploadImage = _uploadImage.asStateFlow()
 
+    private val _uploadDocument = MutableStateFlow<UIState<Uri>>(None())
+    val uploadDocument = _uploadDocument.asStateFlow()
+
     private val _insertImage = MutableStateFlow<UIState<String>>(None())
     val insertImage = _insertImage.asStateFlow()
 
+    private val _insertPublishing = MutableStateFlow<UIState<String>>(None())
+    val insertPublishing = _insertPublishing.asStateFlow()
+
+    private val _insertHistorical = MutableStateFlow<UIState<String>>(None())
+    val insertHistorical = _insertHistorical.asStateFlow()
+
     private val _update = MutableStateFlow<UIState<String>>(None())
     val update = _update.asStateFlow()
+
+    private val _insertRequest = MutableStateFlow<UIState<String>>(None())
+    val insertRequest = _insertRequest.asStateFlow()
+
+    private val _updateRequest = MutableStateFlow<UIState<String>>(None())
+    val updateRequest = _updateRequest.asStateFlow()
+
+    private val _deleteRequest = MutableStateFlow<UIState<String>>(None())
+    val deleteRequest = _deleteRequest.asStateFlow()
 
     private val _delete = MutableStateFlow<UIState<String>>(None())
     val delete = _delete.asStateFlow()
@@ -278,7 +338,59 @@ class MainViewModel @Inject constructor(
     private val _user = MutableLiveData<User>()
     val user: LiveData<User> = _user
 
+    private val _visitMillis = MutableLiveData<Long>()
+    val visitMillis: LiveData<Long> = _visitMillis
+
+    private val _visitLocal = MutableLiveData<LocalDateTime>()
+    val visitLocal: LiveData<LocalDateTime> = _visitLocal
+
+    private val _visitDay = MutableLiveData<String>("")
+    val visitDay: LiveData<String> = _visitDay
+
+    private val _requestXPublishing =
+        MutableStateFlow<UIState<List<RequestHasPublishing>>>(Loading())
+    val requestXPublishing = _requestXPublishing.asStateFlow()
+
+    private val _requests = MutableLiveData<List<RequestHasPublishing>>(emptyList())
+    val requests: LiveData<List<RequestHasPublishing>> = _requests
+
+    private val _deviceItems = MutableLiveData<List<Device>>(emptyList())
+    val deviceItems: LiveData<List<Device>> = _deviceItems
+
+    private val _requestState = MutableLiveData("Solicitado")
+    val requestState: LiveData<String> = _requestState
+
     private var propertyId = MutableLiveData(0)
+
+    val foundLocations = mutableStateMapOf<String, ServiceMarker>()
+
+    lateinit var placesClient: PlacesClient
+
+    val locationAutofill = mutableStateListOf<AutocompleteResult>()
+
+    var searchQuery by mutableStateOf("")
+        private set
+
+    fun searchAddress(query: String) {
+        locationAutofill.clear()
+        viewModelScope.launch {
+            placesClient.autocompleteAddress(query = query) { response ->
+                locationAutofill += response.autocompletePredictions.map {
+                    AutocompleteResult(
+                        placeId = it.placeId,
+                        address = it.getPrimaryText(null).toString(),
+                        secondary = it.getSecondaryText(null).toString()
+                    )
+                }
+            }
+        }
+    }
+
+    fun getCoordinates(result: AutocompleteResult, onLocationResult: (LatLng) -> Unit) {
+        viewModelScope.launch {
+            placesClient.getCoordinates(result = result, onLocationResult = onLocationResult)
+        }
+    }
 
     fun years() = arrayOf(
         "1950",
@@ -358,6 +470,37 @@ class MainViewModel @Inject constructor(
         "2024"
     )
 
+    fun requestStates() = listOf(
+        RequestState(id = 1, name = "Solicitado"),
+        RequestState(id = 2, name = "Agendado"),
+        RequestState(id = 3, name = "Concluido"),
+        RequestState(id = 4, name = "Cancelado"),
+    )
+
+    fun colors(id: Int) = when (id) {
+        1 -> Color.White
+        2 -> Color.Yellow
+        3 -> Color.Green
+        4 -> Color.Red
+        else -> Color.White
+    }
+
+    fun titles(id: Int) = when (id) {
+        1 -> "Confirmar visita"
+        2 -> "Confirmar visita exitosa"
+        3 -> "Fin del proceso"
+        4 -> "Proceso cancelado"
+        else -> "Confirmar solicitud"
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun getVisitDateTime(hour: Int, minute: Int): LocalDateTime {
+        val date = _visitMillis.value ?: System.currentTimeMillis()
+        return date.plus(timeToMillis(hours = hour, minute = minute))
+            .millisToLocalDateTime()
+            .toKotlinLocalDateTime()
+    }
+
     fun onLoadingVisible(visible: Boolean) {
         _loadingVisible.value = visible
     }
@@ -368,6 +511,26 @@ class MainViewModel @Inject constructor(
 
     fun onCompleteDialogVisible(visible: Boolean) {
         _completeDialogVisible.value = visible
+    }
+
+    fun onSearchAddressBottomSheetVisible(visible: Boolean) {
+        _searchAddressBottomSheetVisible.value = visible
+    }
+
+    fun onInboxDetailBottomSheetVisible(visible: Boolean) {
+        _inboxDetailBottomSheetVisible.value = visible
+    }
+
+    fun onVisitDayDialogVisible(visible: Boolean) {
+        _visitDayDialogVisible.value = visible
+    }
+
+    fun onVisitDayTimeDialogVisible(visible: Boolean) {
+        _visitDayTimeDialogVisible.value = visible
+    }
+
+    fun onConfirmDialogVisible(visible: Boolean) {
+        _confirmDialogVisible.value = visible
     }
 
     fun onPropertyItemChanged(property: String) {
@@ -506,8 +669,36 @@ class MainViewModel @Inject constructor(
         _imageUrls.value = urls
     }
 
+    fun onRequestsChanged(requests: List<RequestHasPublishing>) {
+        _requests.value = requests
+    }
+
+    fun onDevicesChanged(devices: List<Device>) {
+        _deviceItems.value = devices
+    }
+
     fun onUserChanged(user: User) {
         _user.value = user
+    }
+
+    fun onSearchQueryChange(newQuery: String) {
+        searchQuery = newQuery
+    }
+
+    fun onRequestStateChanged(state: String) {
+        _requestState.value = state
+    }
+
+    fun onVisitMillisChanged(visitMillis: Long) {
+        _visitMillis.value = visitMillis
+    }
+
+    fun onVisitLocalChanged(visitLocal: LocalDateTime) {
+        _visitLocal.value = visitLocal
+    }
+
+    fun onVisitDayChanged(visitDay: String) {
+        _visitDay.value = visitDay
     }
 
     fun validateTitle(): Boolean {
@@ -739,6 +930,16 @@ class MainViewModel @Inject constructor(
         )
     }
 
+    fun executeRegisterPublishing() {
+        registerPublishing(
+            publishing = Publishing(
+                id = 0,
+                numberView = 0,
+                property = getProperty(id = propertyId.value ?: 0)
+            )
+        )
+    }
+
     fun loadProperties() {
         viewModelScope.launch {
             repository.loadProperties()
@@ -963,6 +1164,22 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun loadDevices() {
+        viewModelScope.launch {
+            repository.loadDevices()
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _devices.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _devices.value = it }
+        }
+    }
+
     fun uploadImage(imageURI: Uri) {
         viewModelScope.launch {
             repository.uploadImages(name = UUID.randomUUID().toString(), imageURI = imageURI)
@@ -992,6 +1209,130 @@ class MainViewModel @Inject constructor(
                     SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
                     Loading()
                 ).collect { _insertImage.value = it }
+        }
+    }
+
+    fun registerPublishing(publishing: Publishing) {
+        viewModelScope.launch {
+            repository.registerPublishing(publishing = publishing)
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _insertPublishing.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _insertPublishing.value = it }
+        }
+    }
+
+    fun loadRequestsXPublishing() {
+        viewModelScope.launch {
+            repository.loadRequestsXPublishing()
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _requestXPublishing.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _requestXPublishing.value = it }
+        }
+    }
+
+    fun insertRequestXPublishing(request: RequestHasPublishing) {
+        viewModelScope.launch {
+            repository.registerRequestXPublishing(
+                requestHasPublishing = request
+            )
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _insertRequest.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _insertRequest.value = it }
+        }
+    }
+
+    fun executeUpdateRequest(request: RequestHasPublishing) {
+        updateRequest(request = request.request)
+    }
+
+    fun updateRequest(request: Request) {
+        viewModelScope.launch {
+            repository.updateRequest(
+                id = request.id,
+                request = request
+            )
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _updateRequest.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _updateRequest.value = it }
+        }
+    }
+
+    fun deleteRequestXPublishing(request: RequestHasPublishing) {
+        viewModelScope.launch {
+            repository.deleteRequestXPublishing(
+                rId = request.request.id,
+                pId = request.publishing.id
+            )
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _deleteRequest.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _deleteRequest.value = it }
+        }
+    }
+
+    fun registerHistorical(historical: Historical) {
+        viewModelScope.launch {
+            repository.registerHistorical(historical = historical)
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _insertHistorical.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _insertHistorical.value = it }
+        }
+    }
+
+    fun uploadDocument(docURI: Uri) {
+        viewModelScope.launch {
+            repository.uploadDocument(name = UUID.randomUUID().toString(), docURI = docURI)
+                .map { it }
+                .flowOn(dispatcher)
+                .catch {
+                    _uploadDocument.value = Error(error = it)
+                }
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(stopTimeoutMillis = 10000),
+                    Loading()
+                ).collect { _uploadDocument.value = it }
         }
     }
 
@@ -1027,4 +1368,37 @@ class MainViewModel @Inject constructor(
         },
         user = _user.value!!
     )
+
+    fun clearForm() {
+        onTitleChanged("")
+        onDescriptionChanged("")
+        onMaintenanceChanged("")
+        onAddressChanged("")
+        onPostalChanged("")
+        onNBedroomChanged("1")
+        onNBathroomChanged("1")
+        onNGarageChanged("0")
+        onNFloorChanged("1")
+        onTotalAreaChanged("80")
+        onBuiltAreaChanged("80")
+        onPriceChanged("")
+        onPriceSaleChanged("")
+        onLatitudeChanged("")
+        onLongitudeChanged("")
+        onAltitudeChanged("")
+        onAltitudeBaseChanged("")
+        onImageUrisChanged(emptyList())
+        propertyId.postValue(0)
+        _titleError.postValue(false)
+        _descriptionError.postValue(false)
+        _maintenanceError.postValue(false)
+        _addressError.postValue(false)
+        _postalError.postValue(false)
+        _priceError.postValue(false)
+        _priceSaleError.postValue(false)
+        _latitudeError.postValue(false)
+        _longitudeError.postValue(false)
+        _altitudeError.postValue(false)
+        _altitudeBaseError.postValue(false)
+    }
 }
